@@ -1,1 +1,3 @@
-# ocp-certificate-api
+# Ozon Code Platform Certificate API
+
+by Vadim Prosviryakov
