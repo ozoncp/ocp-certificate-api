@@ -27,26 +27,19 @@ func SplitSlice(splitSlice []int, batchSize int) ([][]int, error) {
 	return result, nil
 }
 
-func FilterSlice(filterSlice []int) ([]int, error) {
+func FilterSlice(filterSlice []int, filter map[int]int) ([]int, error) {
 	if len(filterSlice) == 0 {
 		return nil, errors.New("The filterSlice size cannot be zero.")
 	}
 
-	filter := []int{2, 4, 6, -3, 10, 8}
+	if len(filter) == 0 {
+		return nil, errors.New("The filter size cannot be zero.")
+	}
+
 	result := make([]int, 0)
-
-	for _, vSlice := range filterSlice {
-		isAppendValue := true
-
-		for _, vFilter := range filter {
-			if vSlice == vFilter {
-				isAppendValue = false
-				break
-			}
-		}
-
-		if isAppendValue == true {
-			result = append(result, vSlice)
+	for _, value := range filterSlice {
+		if _, found := filter[value]; !found {
+			result = append(result, value)
 		}
 	}
 
