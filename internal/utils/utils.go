@@ -2,12 +2,16 @@ package utils
 
 import "errors"
 
-func SplitSlice(splitSlice []uint, batchSize int) ([][]uint, error) {
-	if batchSize == 0 {
-		return nil, errors.New("The batch size cannot be zero.")
+func SplitSlice(splitSlice []int, batchSize int) ([][]int, error) {
+	if len(splitSlice) == 0 {
+		return nil, errors.New("The splitSlice size cannot be zero.")
 	}
 
-	result := make([][]uint, (len(splitSlice)-1)/batchSize+1)
+	if batchSize <= 0 {
+		return nil, errors.New("The batch size cannot be zero or negative.")
+	}
+
+	result := make([][]int, (len(splitSlice)-1)/batchSize+1)
 
 	for index := range result {
 		first, last := index*batchSize, (index+1)*batchSize
@@ -23,20 +27,27 @@ func SplitSlice(splitSlice []uint, batchSize int) ([][]uint, error) {
 	return result, nil
 }
 
-func FilterSlice(filterSlice []uint, filter uint) ([]uint, error) {
+func FilterSlice(filterSlice []int) ([]int, error) {
 	if len(filterSlice) == 0 {
 		return nil, errors.New("The filterSlice size cannot be zero.")
 	}
 
-	result := make([]uint, 0, len(filterSlice))
+	filter := []int{2, 4, 6, -3, 10, 8}
+	result := make([]int, 0)
+	isAppendValue := true
 
-	contains := func(value uint) bool {
-		return value == filter
-	}
+	for _, vSlice := range filterSlice {
 
-	for index := range filterSlice {
-		if !contains(filterSlice[index]) {
-			result = append(result, filterSlice[index])
+		isAppendValue = true
+		for _, vFilter := range filter {
+			if vSlice == vFilter {
+				isAppendValue = false
+				break
+			}
+		}
+
+		if isAppendValue == true {
+			result = append(result, vSlice)
 		}
 	}
 
