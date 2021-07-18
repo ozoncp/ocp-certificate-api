@@ -34,11 +34,10 @@ func FilterSlice(filterSlice []int) ([]int, error) {
 
 	filter := []int{2, 4, 6, -3, 10, 8}
 	result := make([]int, 0)
-	isAppendValue := true
 
 	for _, vSlice := range filterSlice {
+		isAppendValue := true
 
-		isAppendValue = true
 		for _, vFilter := range filter {
 			if vSlice == vFilter {
 				isAppendValue = false
