@@ -27,7 +27,7 @@ func SplitSlice(splitSlice []int, batchSize int) ([][]int, error) {
 	return result, nil
 }
 
-func FilterSlice(filterSlice []int, filter map[int]int) ([]int, error) {
+func FilterSlice(filterSlice []int, filter []int) ([]int, error) {
 	if len(filterSlice) == 0 {
 		return nil, errors.New("The filterSlice size cannot be zero.")
 	}
@@ -36,9 +36,14 @@ func FilterSlice(filterSlice []int, filter map[int]int) ([]int, error) {
 		return nil, errors.New("The filter size cannot be zero.")
 	}
 
+	var filtered = map[int]struct{}{}
+	for _, f := range filter {
+		filtered[f] = struct{}{}
+	}
+
 	result := make([]int, 0)
 	for _, value := range filterSlice {
-		if _, found := filter[value]; !found {
+		if _, found := filtered[value]; !found {
 			result = append(result, value)
 		}
 	}
