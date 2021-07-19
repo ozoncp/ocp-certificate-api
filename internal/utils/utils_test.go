@@ -30,19 +30,19 @@ func TestSplitSliceBatchError(t *testing.T) {
 
 func TestFilterSliceSuccess(t *testing.T) {
 	actual, _ := FilterSlice([]int{1, 6, 8, 6, 3, 10, -4, 6, 7, 6, 9, 6, 6, 6},
-		[]int{2, 4, 6, -3, 10, 8})
+		map[int]int{2: 2, 4: 4, 6: 6, -3: -3, 10: 10, 8: 8})
 	expected := []int{1, 3, -4, 7, 9}
 	assertDeapEqual(t, actual, expected)
 }
 
 func TestFilterSliceError(t *testing.T) {
-	_, actual := FilterSlice([]int{}, []int{})
+	_, actual := FilterSlice([]int{}, map[int]int{})
 	expected := errors.New("The filterSlice size cannot be zero.")
 	assertDeapEqual(t, actual, expected)
 }
 
 func TestFilterSliceFilteredError(t *testing.T) {
-	_, actual := FilterSlice([]int{1, 6, 8, 6, 3, 10, -4, 6, 7, 6, 9, 6, 6, 6}, []int{})
+	_, actual := FilterSlice([]int{1, 6, 8, 6, 3, 10, -4, 6, 7, 6, 9, 6, 6, 6}, map[int]int{})
 	expected := errors.New("The filter size cannot be zero.")
 	assertDeapEqual(t, actual, expected)
 }

@@ -27,7 +27,7 @@ func SplitSlice(splitSlice []int, batchSize int) ([][]int, error) {
 	return result, nil
 }
 
-func FilterSlice(filterSlice []int, filter []int) ([]int, error) {
+func FilterSlice(filterSlice []int, filter map[int]int) ([]int, error) {
 	if len(filterSlice) == 0 {
 		return nil, errors.New("The filterSlice size cannot be zero.")
 	}
@@ -38,21 +38,12 @@ func FilterSlice(filterSlice []int, filter []int) ([]int, error) {
 
 	result := make([]int, 0)
 	for _, value := range filterSlice {
-		if !isRemoveValue(filter, value) {
+		if _, found := filter[value]; !found {
 			result = append(result, value)
 		}
 	}
 
 	return result, nil
-}
-
-func isRemoveValue(removeValue []int, value int) bool {
-	for _, val := range removeValue {
-		if val == value {
-			return true
-		}
-	}
-	return false
 }
 
 func SwapMap(swapMap map[int]string) (map[string]int, error) {
