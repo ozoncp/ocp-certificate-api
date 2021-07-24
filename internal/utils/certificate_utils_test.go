@@ -11,19 +11,19 @@ import (
 func TestSplitToBulksSuccess(t *testing.T) {
 	now := time.Now()
 	slice := []model.Certificate{
-		*model.NewCertificate(1.0, 1.0, now, "http://link"),
-		*model.NewCertificate(2.0, 2.0, now, "http://link"),
-		*model.NewCertificate(3.0, 3.0, now, "http://link"),
-		*model.NewCertificate(4.0, 4.0, now, "http://link"),
-		*model.NewCertificate(5.0, 5.0, now, "http://link"),
+		{1.0, 1.0, now, "http://link"},
+		{2.0, 2.0, now, "http://link"},
+		{3.0, 3.0, now, "http://link"},
+		{4.0, 4.0, now, "http://link"},
+		{5.0, 5.0, now, "http://link"},
 	}
 
 	want := [][]model.Certificate{
-		{*model.NewCertificate(1.0, 1.0, now, "http://link"),
-			*model.NewCertificate(2.0, 2.0, now, "http://link")},
-		{*model.NewCertificate(3.0, 3.0, now, "http://link"),
-			*model.NewCertificate(4.0, 4.0, now, "http://link")},
-		{*model.NewCertificate(5.0, 5.0, now, "http://link")},
+		{model.Certificate{1.0, 1.0, now, "http://link"},
+			model.Certificate{2.0, 2.0, now, "http://link"}},
+		{model.Certificate{3.0, 3.0, now, "http://link"},
+			model.Certificate{4.0, 4.0, now, "http://link"}},
+		{model.Certificate{5.0, 5.0, now, "http://link"}},
 	}
 
 	got := SplitToBulks(slice, 2)
@@ -44,19 +44,19 @@ func TestSplitToBulksEmpty(t *testing.T) {
 func TestSliceToMapSuccess(t *testing.T) {
 	now := time.Now()
 	slice := []model.Certificate{
-		*model.NewCertificate(1.0, 1.0, now, "http://link"),
-		*model.NewCertificate(2.0, 2.0, now, "http://link"),
-		*model.NewCertificate(3.0, 3.0, now, "http://link"),
-		*model.NewCertificate(4.0, 4.0, now, "http://link"),
-		*model.NewCertificate(5.0, 5.0, now, "http://link"),
+		{1.0, 1.0, now, "http://link"},
+		{2.0, 2.0, now, "http://link"},
+		{3.0, 3.0, now, "http://link"},
+		{4.0, 4.0, now, "http://link"},
+		{5.0, 5.0, now, "http://link"},
 	}
 
 	want := map[uint64]model.Certificate{
-		1: *model.NewCertificate(1.0, 1.0, now, "http://link"),
-		2: *model.NewCertificate(1.0, 2.0, now, "http://link"),
-		3: *model.NewCertificate(2.0, 3.0, now, "http://link"),
-		4: *model.NewCertificate(3.0, 4.0, now, "http://link"),
-		5: *model.NewCertificate(4.0, 5.0, now, "http://link"),
+		1: {1.0, 1.0, now, "http://link"},
+		2: {1.0, 2.0, now, "http://link"},
+		3: {2.0, 3.0, now, "http://link"},
+		4: {3.0, 4.0, now, "http://link"},
+		5: {4.0, 5.0, now, "http://link"},
 	}
 
 	got, _ := SliceToMap(slice)
