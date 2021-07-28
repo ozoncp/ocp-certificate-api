@@ -9,16 +9,16 @@ import (
 	"os"
 )
 
-func SplitToBulks(certificate []model.Certificate, batchSize uint) [][]model.Certificate {
+func SplitToBulks(certificate []model.Certificate, batchSize int) [][]model.Certificate {
 
 	if len(certificate) == 0 || batchSize <= 0 {
 		return [][]model.Certificate{}
 	}
 
-	result := make([][]model.Certificate, (len(certificate)-1)/int(batchSize)+1)
+	result := make([][]model.Certificate, (len(certificate)-1)/batchSize+1)
 
 	for index := range result {
-		first, last := index*int(batchSize), (index+1)*int(batchSize)
+		first, last := index*batchSize, (index+1)*batchSize
 
 		if last < len(certificate) {
 			result[index] = certificate[first:last]
