@@ -11,7 +11,9 @@ import (
 )
 
 var _ = Describe("Saver", func() {
-	const capacity = 12
+	const capacity = 10
+	const buffer = 10
+
 	ticker := time.NewTicker(200 * time.Millisecond)
 	now := time.Now()
 
@@ -27,8 +29,9 @@ var _ = Describe("Saver", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockFlusher = mocks.NewMockFlusher(ctrl)
 
-		certificateChannel = make(chan model.Certificate, 20)
+		certificateChannel = make(chan model.Certificate, buffer)
 		svr = saver.NewSaver(capacity, mockFlusher, *ticker)
+
 		certificates = []model.Certificate{
 			0: {1.0, 1.0, now, "https://link"},
 			1: {2.0, 2.0, now, "https://link"},
@@ -45,12 +48,12 @@ var _ = Describe("Saver", func() {
 		ctrl.Finish()
 	})
 
-	Context("Saving", func() {
+	Context("Run tests", func() {
 		BeforeEach(func() {
 			mockFlusher.EXPECT().Flush(gomock.Any()).MinTimes(1).Return([]model.Certificate{{}})
 		})
 
-		It("", func() {
+		It("Saving", func() {
 			saver := saver.NewSaver(capacity, mockFlusher, *ticker)
 			saver.Init()
 
@@ -64,6 +67,19 @@ var _ = Describe("Saver", func() {
 
 			saver.Close()
 			Expect(len(certificateChannel)).Should(BeEquivalentTo(3))
+		})
+
+		It("Panic", func() {
+			mockFlusher.Flush(nil)
+			saver := saver.NewSaver(capacity, mockFlusher, *ticker)
+			saver.Init()
+
+			save := func() {
+				saver.Save(certificates[0])
+			}
+
+			saver.Close()
+			Expect(save).Should(Panic())
 		})
 	})
 })
