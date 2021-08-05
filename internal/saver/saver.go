@@ -63,7 +63,6 @@ func (saver *saver) Init() {
 }
 
 func (saver *saver) Close() {
-	saver.ticker.Stop()
 	saver.close <- struct{}{}
 	<-saver.done
 }
