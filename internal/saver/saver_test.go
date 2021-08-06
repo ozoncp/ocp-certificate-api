@@ -20,7 +20,6 @@ var _ = Describe("Saver", func() {
 	var (
 		ctrl               *gomock.Controller
 		mockFlusher        *mocks.MockFlusher
-		svr                saver.Saver
 		certificateChannel chan model.Certificate
 		certificates       []model.Certificate
 	)
@@ -28,10 +27,7 @@ var _ = Describe("Saver", func() {
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockFlusher = mocks.NewMockFlusher(ctrl)
-
 		certificateChannel = make(chan model.Certificate, buffer)
-		svr = saver.NewSaver(capacity, mockFlusher, *ticker)
-
 		certificates = []model.Certificate{
 			0: {1.0, 1.0, now, "https://link"},
 			1: {2.0, 2.0, now, "https://link"},
@@ -39,18 +35,13 @@ var _ = Describe("Saver", func() {
 		}
 	})
 
-	JustBeforeEach(func() {
-		svr.Init()
-	})
-
 	AfterEach(func() {
-		svr.Close()
 		ctrl.Finish()
 	})
 
 	Context("Run tests", func() {
 		BeforeEach(func() {
-			mockFlusher.EXPECT().Flush(gomock.Any()).MinTimes(1).Return([]model.Certificate{{}})
+			mockFlusher.EXPECT().Flush(gomock.Any()).MinTimes(1).Return(certificates)
 		})
 
 		It("Saving", func() {
@@ -58,11 +49,8 @@ var _ = Describe("Saver", func() {
 			saver.Init()
 
 			for _, cert := range certificates {
-				certificateChannel <- cert
-			}
-
-			for _, cert := range certificates {
 				saver.Save(cert)
+				certificateChannel <- cert
 			}
 
 			saver.Close()
