@@ -18,28 +18,24 @@ func NewSaver(
 	ticker time.Ticker,
 ) Saver {
 	return &saver{
-		capacity:           capacity,
-		flusher:            flusher,
-		ticker:             ticker,
-		certificateModel:   make([]model.Certificate, 0, capacity),
-		certificateChannel: make(chan model.Certificate),
-		close:              make(chan struct{}),
-		done:               make(chan struct{}),
+		flusher:          flusher,
+		ticker:           ticker,
+		certificateModel: make([]model.Certificate, 0, capacity),
+		cert:             make(chan model.Certificate),
+		close:            make(chan struct{}),
 	}
 }
 
 type saver struct {
-	capacity           uint
-	flusher            flusher.Flusher
-	ticker             time.Ticker
-	certificateModel   []model.Certificate
-	certificateChannel chan model.Certificate
-	close              chan struct{}
-	done               chan struct{}
+	flusher          flusher.Flusher
+	ticker           time.Ticker
+	certificateModel []model.Certificate
+	cert             chan model.Certificate
+	close            chan struct{}
 }
 
 func (saver *saver) Save(certificateChannel model.Certificate) {
-	saver.certificateChannel <- certificateChannel
+	saver.cert <- certificateChannel
 }
 
 func (saver *saver) Init() {
@@ -48,15 +44,13 @@ func (saver *saver) Init() {
 
 		for {
 			select {
-			case cert := <-saver.certificateChannel:
+			case cert := <-saver.cert:
 				saver.certificateModel = append(saver.certificateModel, cert)
 			case <-saver.ticker.C:
 				saver.certificateModel = saver.flusher.Flush(saver.certificateModel)
 			case <-saver.close:
-				close(saver.certificateChannel)
+				close(saver.cert)
 				close(saver.close)
-				_ = saver.flusher.Flush(saver.certificateModel)
-				saver.done <- struct{}{}
 				return
 			}
 		}
@@ -65,5 +59,4 @@ func (saver *saver) Init() {
 
 func (saver *saver) Close() {
 	saver.close <- struct{}{}
-	<-saver.done
 }
