@@ -41,7 +41,7 @@ var _ = Describe("Saver", func() {
 
 	Context("Run tests", func() {
 		BeforeEach(func() {
-			mockFlusher.EXPECT().Flush(gomock.Any()).MinTimes(1).Return(certificates)
+			mockFlusher.EXPECT().Flush(gomock.Any()).AnyTimes().Return(certificates)
 		})
 
 		It("Saving", func() {

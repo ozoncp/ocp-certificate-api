@@ -1,1 +1,8 @@
+# IDE configs
 .idea
+
+# Binaries
+bin/
+
+# Dependency directories (remove the comment below to include it)
+vendor.protogen
