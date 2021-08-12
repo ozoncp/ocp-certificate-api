@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+import "github.com/envoyproxy/protoc-gen-validate/validate/validate.proto";
+
+option go_package = "github.com/ozoncp/ocp-certificate-api/pkg/ocp-certificate-api;ocp_certificate_api";
+
+package ocp.certificate.api;
+
+service OcpCertificateApi {
+  rpc CreateCertificateV1(CreateCertificateV1Request) returns (CreateCertificateV1Response) {
+    option (google.api.http) = {
+      post: "/v1/certificates"
+      body: "*"
+    };
+  }
+
+  rpc DescribeCertificateV1(DescribeCertificateV1Request) returns (DescribeCertificateV1Response) {
+    option (google.api.http) = {
+      get: "/v1/certificates/{certificate_id}"
+    };
+  }
+
+  rpc ListCertificateV1(google.protobuf.Empty) returns (ListCertificateV1Response) {
+    option (google.api.http) = {
+      get: "/v1/certificates"
+    };
+  }
+
+  rpc UpdateCertificateV1(UpdateCertificateV1Request) returns (UpdateCertificateV1Response) {
+    option (google.api.http) = {
+      put: "/v1/certificates"
+      body: "*"
+    };
+  }
+
+  rpc RemoveCertificateV1(RemoveCertificateV1Request) returns (RemoveCertificateV1Response) {
+    option (google.api.http) = {
+      delete: "/v1/certificates/{certificate_id}"
+    };
+  }
+}
+
+message Certificate {
+  uint64 id = 1 [(validate.rules).uint64.gt = 0];
+  uint64 userId = 2 [(validate.rules).uint64.gt = 0];
+  google.protobuf.Timestamp created = 3;
+  string link = 4;
+}
+
+// Create
+message CreateCertificateV1Request {
+  Certificate certificate = 1;
+}
+
+message CreateCertificateV1Response {
+}
+
+// Read
+message DescribeCertificateV1Request {
+  uint64 certificate_id = 1 [(validate.rules).uint64.gt = 0];
+}
+message DescribeCertificateV1Response {
+}
+
+// Read All
+message ListCertificateV1Response {
+}
+
+// Update
+message UpdateCertificateV1Request {
+  Certificate certificate = 1;
+}
+message UpdateCertificateV1Response {
+}
+
+// Delete
+message RemoveCertificateV1Request {
+  uint64 certificate_id = 1 [(validate.rules).uint64.gt = 0];
+}
+message RemoveCertificateV1Response {
+}
