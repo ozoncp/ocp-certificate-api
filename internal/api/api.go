@@ -4,6 +4,7 @@ import (
 	"context"
 	desc "github.com/ozoncp/ocp-certificate-api/pkg/ocp-certificate-api"
 	log "github.com/rs/zerolog/log"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type api struct {
@@ -32,7 +33,7 @@ func (a *api) DescribeCertificateV1(
 
 func (a *api) ListCertificateV1(
 	ctx context.Context,
-	req *desc.ListCertificateV1Request,
+	req *emptypb.Empty,
 ) (*desc.ListCertificateV1Response, error) {
 	log.Printf("Reading of the certificates was successful")
 	return &desc.ListCertificateV1Response{}, nil

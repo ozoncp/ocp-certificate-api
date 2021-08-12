@@ -28,22 +28,6 @@
             }
           }
         },
-        "parameters": [
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "type": "string",
-            "format": "uint64"
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "required": false,
-            "type": "string",
-            "format": "uint64"
-          }
-        ],
         "tags": [
           "OcpCertificateApi"
         ]
@@ -207,7 +191,8 @@
       "type": "object"
     },
     "apiListCertificateV1Response": {
-      "type": "object"
+      "type": "object",
+      "title": "Read All"
     },
     "apiRemoveCertificateV1Response": {
       "type": "object"

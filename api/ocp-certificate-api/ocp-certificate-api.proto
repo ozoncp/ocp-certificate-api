@@ -2,6 +2,7 @@ syntax = "proto3";
 
 import "google/protobuf/timestamp.proto";
 import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
 import "github.com/envoyproxy/protoc-gen-validate/validate/validate.proto";
 
 option go_package = "github.com/ozoncp/ocp-certificate-api/pkg/ocp-certificate-api;ocp_certificate_api";
