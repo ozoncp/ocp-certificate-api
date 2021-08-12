@@ -22,7 +22,7 @@ service OcpCertificateApi {
     };
   }
 
-  rpc ListCertificateV1(ListCertificateV1Request) returns (ListCertificateV1Response) {
+  rpc ListCertificateV1(google.protobuf.Empty) returns (ListCertificateV1Response) {
     option (google.api.http) = {
       get: "/v1/certificates"
     };
@@ -65,10 +65,6 @@ message DescribeCertificateV1Response {
 }
 
 // Read All
-message ListCertificateV1Request {
-  uint64 limit = 1 [(validate.rules).uint64.gt = 0];
-  uint64 offset = 2 [(validate.rules).uint64.gt = 0];
-}
 message ListCertificateV1Response {
 }
 
