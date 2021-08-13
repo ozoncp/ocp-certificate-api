@@ -1,15 +1,18 @@
 package flusher
 
 import (
+	"context"
 	"github.com/ozoncp/ocp-certificate-api/internal/model"
 	"github.com/ozoncp/ocp-certificate-api/internal/repo"
 	"github.com/ozoncp/ocp-certificate-api/internal/utils"
 )
 
+// Flusher - interface for add entity certificates for saving in repo
 type Flusher interface {
-	Flush(certificates []model.Certificate) []model.Certificate
+	Flush(ctx context.Context, certificates []model.Certificate) []model.Certificate
 }
 
+// NewFlusher - creates a new instance of Flusher.
 func NewFlusher(
 	chunkSize int,
 	entityRepo repo.Repo,
@@ -25,12 +28,13 @@ type flusher struct {
 	entityRepo repo.Repo
 }
 
-func (f flusher) Flush(certificates []model.Certificate) []model.Certificate {
+// Flush method to try to save the certificate entity in the repository if there was no error
+func (f *flusher) Flush(ctx context.Context, certificates []model.Certificate) []model.Certificate {
 	splitsCertificates := utils.SplitToBulks(certificates, f.chunkSize)
 
 	for i, splitsCertificate := range splitsCertificates {
-		if err := f.entityRepo.AddCertificates(splitsCertificate); err != nil {
-			return splitsCertificate[i:]
+		if err := f.entityRepo.AddCertificates(ctx, splitsCertificate); err != nil {
+			return certificates[i*f.chunkSize:]
 		}
 	}
 

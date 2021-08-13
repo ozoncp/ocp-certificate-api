@@ -14,24 +14,24 @@ var _ = Describe("Saver", func() {
 	const capacity = 10
 	const buffer = 10
 
-	ticker := time.NewTicker(200 * time.Millisecond)
-	now := time.Now()
-
 	var (
 		ctrl               *gomock.Controller
 		mockFlusher        *mocks.MockFlusher
 		certificateChannel chan model.Certificate
 		certificates       []model.Certificate
+		s                  saver.Saver
 	)
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockFlusher = mocks.NewMockFlusher(ctrl)
 		certificateChannel = make(chan model.Certificate, buffer)
+
+		now := time.Now()
 		certificates = []model.Certificate{
-			0: {1.0, 1.0, now, "https://link"},
-			1: {2.0, 2.0, now, "https://link"},
-			2: {3.0, 3.0, now, "https://link"},
+			{1.0, 1.0, now, "https://link"},
+			{2.0, 2.0, now, "https://link"},
+			{3.0, 3.0, now, "https://link"},
 		}
 	})
 
@@ -39,34 +39,75 @@ var _ = Describe("Saver", func() {
 		ctrl.Finish()
 	})
 
-	Context("Run tests", func() {
+	Context("Saving success", func() {
+		expected := 3
 		BeforeEach(func() {
-			mockFlusher.EXPECT().Flush(gomock.Any()).AnyTimes().Return(certificates)
+			mockFlusher.EXPECT().Flush(gomock.Any()).Times(1).Return(certificates)
 		})
 
-		It("Saving", func() {
-			saver := saver.NewSaver(capacity, mockFlusher, *ticker)
-			saver.Init()
+		JustBeforeEach(func() {
+			ticker := time.NewTicker(time.Millisecond * 100)
+			s = saver.NewSaver(capacity, mockFlusher, *ticker)
+			s.Init()
+		})
 
+		It("Save and close", func() {
+			defer s.Close()
 			for _, cert := range certificates {
-				saver.Save(cert)
+				s.Save(cert)
 				certificateChannel <- cert
 			}
 
-			saver.Close()
-			Expect(len(certificateChannel)).Should(BeEquivalentTo(3))
+			time.Sleep(time.Millisecond * 120)
+			Expect(len(certificateChannel)).Should(BeEquivalentTo(expected))
+		})
+	})
+
+	Context("Saving success", func() {
+		BeforeEach(func() {
+			mockFlusher.EXPECT().Flush(gomock.Any()).Times(1).Return(certificates)
 		})
 
-		It("Panic", func() {
-			mockFlusher.Flush(nil)
-			saver := saver.NewSaver(capacity, mockFlusher, *ticker)
-			saver.Init()
+		JustBeforeEach(func() {
+			ticker := time.NewTicker(time.Millisecond * 100)
+			s = saver.NewSaver(capacity, mockFlusher, *ticker)
+			s.Init()
+		})
 
+		It("Save after tick", func() {
+			defer s.Close()
+			s.Save(certificates[0])
+			time.Sleep(time.Millisecond * 120)
+		})
+	})
+
+	Context("Error when try save", func() {
+		BeforeEach(func() {
+			mockFlusher.EXPECT().Flush(gomock.Any()).AnyTimes().Return(nil)
+		})
+
+		JustBeforeEach(func() {
+			ticker := time.NewTicker(time.Millisecond * 100)
+			s = saver.NewSaver(capacity, mockFlusher, *ticker)
+			s.Init()
+		})
+
+		It("Panic, because close channel before Save() ", func() {
+			s.Close()
 			save := func() {
-				saver.Save(certificates[0])
+				s.Save(certificates[0])
 			}
 
-			saver.Close()
+			Expect(save).Should(Panic())
+		})
+
+		It("Panic, because close channel before Init() ", func() {
+			s.Close()
+			save := func() {
+				s.Save(certificates[0])
+				s.Init()
+			}
+
 			Expect(save).Should(Panic())
 		})
 	})

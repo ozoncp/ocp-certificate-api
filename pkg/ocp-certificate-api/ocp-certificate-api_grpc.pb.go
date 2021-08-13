@@ -7,7 +7,6 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -21,7 +20,7 @@ const _ = grpc.SupportPackageIsVersion7
 type OcpCertificateApiClient interface {
 	CreateCertificateV1(ctx context.Context, in *CreateCertificateV1Request, opts ...grpc.CallOption) (*CreateCertificateV1Response, error)
 	DescribeCertificateV1(ctx context.Context, in *DescribeCertificateV1Request, opts ...grpc.CallOption) (*DescribeCertificateV1Response, error)
-	ListCertificateV1(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ListCertificateV1Response, error)
+	ListCertificateV1(ctx context.Context, in *ListCertificateV1Request, opts ...grpc.CallOption) (*ListCertificateV1Response, error)
 	UpdateCertificateV1(ctx context.Context, in *UpdateCertificateV1Request, opts ...grpc.CallOption) (*UpdateCertificateV1Response, error)
 	RemoveCertificateV1(ctx context.Context, in *RemoveCertificateV1Request, opts ...grpc.CallOption) (*RemoveCertificateV1Response, error)
 }
@@ -52,7 +51,7 @@ func (c *ocpCertificateApiClient) DescribeCertificateV1(ctx context.Context, in 
 	return out, nil
 }
 
-func (c *ocpCertificateApiClient) ListCertificateV1(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*ListCertificateV1Response, error) {
+func (c *ocpCertificateApiClient) ListCertificateV1(ctx context.Context, in *ListCertificateV1Request, opts ...grpc.CallOption) (*ListCertificateV1Response, error) {
 	out := new(ListCertificateV1Response)
 	err := c.cc.Invoke(ctx, "/ocp.certificate.api.OcpCertificateApi/ListCertificateV1", in, out, opts...)
 	if err != nil {
@@ -85,7 +84,7 @@ func (c *ocpCertificateApiClient) RemoveCertificateV1(ctx context.Context, in *R
 type OcpCertificateApiServer interface {
 	CreateCertificateV1(context.Context, *CreateCertificateV1Request) (*CreateCertificateV1Response, error)
 	DescribeCertificateV1(context.Context, *DescribeCertificateV1Request) (*DescribeCertificateV1Response, error)
-	ListCertificateV1(context.Context, *emptypb.Empty) (*ListCertificateV1Response, error)
+	ListCertificateV1(context.Context, *ListCertificateV1Request) (*ListCertificateV1Response, error)
 	UpdateCertificateV1(context.Context, *UpdateCertificateV1Request) (*UpdateCertificateV1Response, error)
 	RemoveCertificateV1(context.Context, *RemoveCertificateV1Request) (*RemoveCertificateV1Response, error)
 	mustEmbedUnimplementedOcpCertificateApiServer()
@@ -101,7 +100,7 @@ func (UnimplementedOcpCertificateApiServer) CreateCertificateV1(context.Context,
 func (UnimplementedOcpCertificateApiServer) DescribeCertificateV1(context.Context, *DescribeCertificateV1Request) (*DescribeCertificateV1Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DescribeCertificateV1 not implemented")
 }
-func (UnimplementedOcpCertificateApiServer) ListCertificateV1(context.Context, *emptypb.Empty) (*ListCertificateV1Response, error) {
+func (UnimplementedOcpCertificateApiServer) ListCertificateV1(context.Context, *ListCertificateV1Request) (*ListCertificateV1Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListCertificateV1 not implemented")
 }
 func (UnimplementedOcpCertificateApiServer) UpdateCertificateV1(context.Context, *UpdateCertificateV1Request) (*UpdateCertificateV1Response, error) {
@@ -160,7 +159,7 @@ func _OcpCertificateApi_DescribeCertificateV1_Handler(srv interface{}, ctx conte
 }
 
 func _OcpCertificateApi_ListCertificateV1_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(emptypb.Empty)
+	in := new(ListCertificateV1Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -172,7 +171,7 @@ func _OcpCertificateApi_ListCertificateV1_Handler(srv interface{}, ctx context.C
 		FullMethod: "/ocp.certificate.api.OcpCertificateApi/ListCertificateV1",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OcpCertificateApiServer).ListCertificateV1(ctx, req.(*emptypb.Empty))
+		return srv.(OcpCertificateApiServer).ListCertificateV1(ctx, req.(*ListCertificateV1Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }

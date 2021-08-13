@@ -9,6 +9,7 @@ import (
 	"os"
 )
 
+// SplitToBulks - splits the certificate slice into certificate slices with the specified batchSize size
 func SplitToBulks(certificate []model.Certificate, batchSize int) [][]model.Certificate {
 
 	if len(certificate) == 0 || batchSize <= 0 {
@@ -31,6 +32,8 @@ func SplitToBulks(certificate []model.Certificate, batchSize int) [][]model.Cert
 	return result
 }
 
+// SliceToMap - convert a slice certificates in map, where the key is the certificate
+// identifier and the value is the certificate itself
 func SliceToMap(certificate []model.Certificate) (map[uint64]model.Certificate, error) {
 	if len(certificate) == 0 {
 		return nil, errors.New("The swapSlice size cannot be zero.")
@@ -48,6 +51,8 @@ func SliceToMap(certificate []model.Certificate) (map[uint64]model.Certificate, 
 	return result, nil
 }
 
+// ReadFileByCount - filtering on the list - which filter the input slice
+// by the criterion of the absence of an element in the list
 func ReadFileByCount(filePath string, count int) {
 	readFile := func() ([]byte, error) {
 		file, err := os.OpenFile(filePath, os.O_RDONLY, 0666)

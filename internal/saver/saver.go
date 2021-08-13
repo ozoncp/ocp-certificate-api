@@ -6,12 +6,14 @@ import (
 	"time"
 )
 
+// Saver - an interface for saving certificate entities.
 type Saver interface {
 	Save(certificate model.Certificate)
 	Init()
 	Close()
 }
 
+// NewSaver - creates a new instance of Saver.
 func NewSaver(
 	capacity uint,
 	flusher flusher.Flusher,
@@ -34,10 +36,12 @@ type saver struct {
 	close            chan struct{}
 }
 
+// Save - saving certificates entities into the repo
 func (saver *saver) Save(certificateChannel model.Certificate) {
 	saver.cert <- certificateChannel
 }
 
+// Init - starting loop processing incoming events
 func (saver *saver) Init() {
 	go func() {
 		defer saver.ticker.Stop()
@@ -57,6 +61,7 @@ func (saver *saver) Init() {
 	}()
 }
 
+// Close - send signal closing the saver
 func (saver *saver) Close() {
 	saver.close <- struct{}{}
 }

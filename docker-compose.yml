@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:latest
+    restart: always
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    networks:
+      - ocpca
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  ocp-certificate-api:
+    build: .
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_PORT: 5432
+    networks:
+      - ocpca
+    depends_on:
+      - postgres
+    links:
+      - postgres
+    ports:
+      - "8082:8082" # grpc
+      - "8080:8080" # json
+
+volumes:
+  pgdata:
+
+networks:
+  ocpca:
+    driver: bridge

@@ -2,6 +2,7 @@ package utils
 
 import "errors"
 
+// SplitSlice - splits the slice into slices with the specified batchSize size
 func SplitSlice(splitSlice []int, batchSize int) ([][]int, error) {
 	if len(splitSlice) == 0 {
 		return nil, errors.New("The splitSlice size cannot be zero.")
@@ -27,6 +28,8 @@ func SplitSlice(splitSlice []int, batchSize int) ([][]int, error) {
 	return result, nil
 }
 
+// FilterSlice - filtering the list items using a parameter filter,
+// where items will be returned that do not intersect with the filter with a parameter
 func FilterSlice(filterSlice []int, filter []int) ([]int, error) {
 	if len(filterSlice) == 0 {
 		return nil, errors.New("The filterSlice size cannot be zero.")
@@ -51,6 +54,7 @@ func FilterSlice(filterSlice []int, filter []int) ([]int, error) {
 	return result, nil
 }
 
+// SwapMap - swaps the key and value
 func SwapMap(swapMap map[int]string) (map[string]int, error) {
 	if len(swapMap) == 0 {
 		return nil, errors.New("The swapSlice size cannot be zero.")

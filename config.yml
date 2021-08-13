@@ -1,0 +1,19 @@
+project:
+  name: "OCP Certificate Api"
+  author: "Vadim Prosviryakov"
+  version: "0.0.1"
+
+grpc:
+  address: ":8082"
+
+json:
+  address: ":8080"
+
+database:
+  host: "postgres"
+  port: "5432"
+  user: "postgres"
+  password: "postgres"
+  database: "postgres"
+  sslmode: "disable"
+  driver: "postgres"

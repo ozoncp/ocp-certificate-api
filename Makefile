@@ -9,6 +9,21 @@ lint:
 test:
 	go test -v ./...
 
+.PHONY: deploy
+deploy: .compose-build .compose-up .migrate
+
+.PHONY: .compose-build
+.compose-build:
+	docker-compose build
+
+.PHONY: .compose-up
+.compose-up:
+	docker-compose up -d
+
+.PHONY: .migrate
+.migrate:
+	migrate -path ./migrations -database 'postgres://postgres:postgres@127.0.0.1:5433/postgres?sslmode=disable' up
+
 .PHONY: build
 build: vendor-proto .generate .build
 
@@ -32,14 +47,14 @@ build: vendor-proto .generate .build
 
 .PHONY: .build
 .build:
-		go build -o bin/ocp-certificate-api cmd/ocp-certificate-api/main.go
+		CGO_ENABLED=0 GOOS=linux go build -o bin/ocp-certificate-api cmd/ocp-certificate-api/main.go
 
 .PHONY: install
 install: build .install
 
 .PHONY: .install
 install:
-		go install cmd/grpc-server/main.go
+		go install cmd/ocp-certificate-api/main.go
 
 .PHONY: vendor-proto
 vendor-proto: .vendor-proto

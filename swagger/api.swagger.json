@@ -28,6 +28,22 @@
             }
           }
         },
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "uint64"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "uint64"
+          }
+        ],
         "tags": [
           "OcpCertificateApi"
         ]
@@ -185,17 +201,40 @@
       "title": "Create"
     },
     "apiCreateCertificateV1Response": {
-      "type": "object"
+      "type": "object",
+      "properties": {
+        "certificate_id": {
+          "type": "string",
+          "format": "uint64"
+        }
+      }
     },
     "apiDescribeCertificateV1Response": {
-      "type": "object"
+      "type": "object",
+      "properties": {
+        "certificate": {
+          "$ref": "#/definitions/apiCertificate"
+        }
+      }
     },
     "apiListCertificateV1Response": {
       "type": "object",
-      "title": "Read All"
+      "properties": {
+        "certificates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiCertificate"
+          }
+        }
+      }
     },
     "apiRemoveCertificateV1Response": {
-      "type": "object"
+      "type": "object",
+      "properties": {
+        "removed": {
+          "type": "boolean"
+        }
+      }
     },
     "apiUpdateCertificateV1Request": {
       "type": "object",
@@ -207,7 +246,12 @@
       "title": "Update"
     },
     "apiUpdateCertificateV1Response": {
-      "type": "object"
+      "type": "object",
+      "properties": {
+        "updated": {
+          "type": "boolean"
+        }
+      }
     },
     "protobufAny": {
       "type": "object",
