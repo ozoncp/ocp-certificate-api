@@ -1,6 +1,7 @@
 package saver
 
 import (
+	"context"
 	"github.com/ozoncp/ocp-certificate-api/internal/flusher"
 	"github.com/ozoncp/ocp-certificate-api/internal/model"
 	"time"
@@ -51,7 +52,7 @@ func (saver *saver) Init() {
 			case cert := <-saver.cert:
 				saver.certificateModel = append(saver.certificateModel, cert)
 			case <-saver.ticker.C:
-				saver.certificateModel = saver.flusher.Flush(saver.certificateModel)
+				saver.certificateModel = saver.flusher.Flush(context.TODO(), saver.certificateModel)
 			case <-saver.close:
 				close(saver.cert)
 				close(saver.close)

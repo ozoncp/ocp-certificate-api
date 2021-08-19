@@ -22,7 +22,7 @@ deploy: .compose-build .compose-up .migrate
 
 .PHONY: .migrate
 .migrate:
-	migrate -path ./migrations -database 'postgres://postgres:postgres@127.0.0.1:5433/postgres?sslmode=disable' up
+	 goose -dir ./migrations postgres "postgres://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable" up
 
 .PHONY: build
 build: vendor-proto .generate .build

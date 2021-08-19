@@ -64,19 +64,19 @@ func (mr *MockRepoMockRecorder) CreateCertificate(arg0, arg1 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateCertificate", reflect.TypeOf((*MockRepo)(nil).CreateCertificate), arg0, arg1)
 }
 
-// DescribeCertificate mocks base method.
-func (m *MockRepo) DescribeCertificate(arg0 context.Context, arg1 uint64) (*model.Certificate, error) {
+// GetCertificate mocks base method.
+func (m *MockRepo) GetCertificate(arg0 context.Context, arg1 uint64) (*model.Certificate, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DescribeCertificate", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetCertificate", arg0, arg1)
 	ret0, _ := ret[0].(*model.Certificate)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// DescribeCertificate indicates an expected call of DescribeCertificate.
-func (mr *MockRepoMockRecorder) DescribeCertificate(arg0, arg1 interface{}) *gomock.Call {
+// GetCertificate indicates an expected call of GetCertificate.
+func (mr *MockRepoMockRecorder) GetCertificate(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DescribeCertificate", reflect.TypeOf((*MockRepo)(nil).DescribeCertificate), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCertificate", reflect.TypeOf((*MockRepo)(nil).GetCertificate), arg0, arg1)
 }
 
 // ListCertificates mocks base method.

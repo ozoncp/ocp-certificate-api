@@ -87,11 +87,11 @@ var _ = Describe("Api", func() {
 		})
 	})
 
-	Context("Test DescribeCertificateV1", func() {
-		var req *desc.DescribeCertificateV1Request
+	Context("Test GetCertificateV1", func() {
+		var req *desc.GetCertificateV1Request
 
 		BeforeEach(func() {
-			req = &desc.DescribeCertificateV1Request{
+			req = &desc.GetCertificateV1Request{
 				CertificateId: certificates[1].Id,
 			}
 
@@ -107,12 +107,12 @@ var _ = Describe("Api", func() {
 
 		})
 
-		It("Test describe certificate", func() {
+		It("Test Get certificate", func() {
 			grpc = api.NewOcpCertificateApi(r)
 			Expect(grpc).ShouldNot(BeNil())
 			Expect(err).Should(BeNil())
 
-			response, err := grpc.DescribeCertificateV1(ctx, req)
+			response, err := grpc.GetCertificateV1(ctx, req)
 			Expect(err).Should(BeNil())
 			Expect(response.Certificate.Id).Should(BeEquivalentTo(certificates[1].Id))
 			Expect(response.Certificate.UserId).Should(BeEquivalentTo(certificates[1].UserId))

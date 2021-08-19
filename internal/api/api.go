@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"errors"
 	"github.com/ozoncp/ocp-certificate-api/internal/model"
 	"github.com/ozoncp/ocp-certificate-api/internal/repo"
 	desc "github.com/ozoncp/ocp-certificate-api/pkg/ocp-certificate-api"
@@ -10,7 +9,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"strconv"
 )
 
 type api struct {
@@ -31,17 +29,17 @@ func (a *api) CreateCertificateV1(
 	req *desc.CreateCertificateV1Request,
 ) (*desc.CreateCertificateV1Response, error) {
 	if err := req.Validate(); err != nil {
-		log.Error().Err(err).Msg("invalid arguments")
+		log.Error().Err(err).Msg("Invalid arguments was received when creating a certificate")
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	certificate := model.Certificate{
+	certificate := &model.Certificate{
 		UserId:  req.Certificate.UserId,
 		Created: req.Certificate.Created.AsTime(),
 		Link:    req.Certificate.Link,
 	}
 
-	certificateId, err := a.repo.CreateCertificate(ctx, certificate)
+	err := a.repo.CreateCertificate(ctx, certificate)
 
 	if err != nil {
 		log.Error().Err(err).Msg("error create certificate")
@@ -49,7 +47,7 @@ func (a *api) CreateCertificateV1(
 	}
 
 	response := &desc.CreateCertificateV1Response{
-		CertificateId: certificateId,
+		CertificateId: certificate.Id,
 	}
 
 	log.Info().Msg("creation of the certificate was successful")
@@ -57,26 +55,23 @@ func (a *api) CreateCertificateV1(
 	return response, nil
 }
 
-// DescribeCertificateV1 request for get single certificate
-func (a *api) DescribeCertificateV1(
+// GetCertificateV1 request for get single certificate
+func (a *api) GetCertificateV1(
 	ctx context.Context,
-	req *desc.DescribeCertificateV1Request,
-) (*desc.DescribeCertificateV1Response, error) {
+	req *desc.GetCertificateV1Request,
+) (*desc.GetCertificateV1Response, error) {
 	if err := req.Validate(); err != nil {
+		log.Error().Err(err).Msg("Invalid arguments was received when getting a certificate")
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	certificate, err := a.repo.DescribeCertificate(ctx, req.CertificateId)
+	certificate, err := a.repo.GetCertificate(ctx, req.CertificateId)
 	if err != nil {
-		if err == repo.ErrorCertificateNotFound {
-			return nil, status.Error(codes.NotFound, err.Error())
-		}
-
-		log.Error().Err(err).Msg("Failed to describe the data")
+		log.Error().Err(err).Msg("error get the certificate")
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	response := &desc.DescribeCertificateV1Response{
+	response := &desc.GetCertificateV1Response{
 		Certificate: &desc.Certificate{
 			Id:      certificate.Id,
 			UserId:  certificate.UserId,
@@ -97,15 +92,11 @@ func (a *api) ListCertificateV1(
 ) (*desc.ListCertificateV1Response, error) {
 	listCertificates, err := a.repo.ListCertificates(ctx, req.Limit, req.Offset)
 	if err != nil {
-		if errors.Is(err, repo.ErrorCertificateNotFound) {
-			return nil, status.Error(codes.NotFound, err.Error())
-		}
-
 		log.Error().Err(err).Msg("failed get list certificates")
 		return nil, status.Error(codes.Internal, "failed get list certificates")
 	}
 
-	log.Info().Msg("found count certificates: " + strconv.Itoa(len(listCertificates)))
+	log.Info().Msgf("found count certificates: %d", len(listCertificates))
 
 	certificates := make([]*desc.Certificate, 0, len(listCertificates))
 	for _, certificate := range listCertificates {
@@ -134,7 +125,7 @@ func (a *api) UpdateCertificateV1(
 	req *desc.UpdateCertificateV1Request,
 ) (*desc.UpdateCertificateV1Response, error) {
 	if err := req.Validate(); err != nil {
-		log.Error().Err(err).Msg("failed when try update certificate")
+		log.Error().Err(err).Msg("Invalid arguments was received when updating a certificate")
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
@@ -148,10 +139,6 @@ func (a *api) UpdateCertificateV1(
 	updated, err := a.repo.UpdateCertificate(ctx, certificate)
 
 	if err != nil {
-		if err == repo.ErrorCertificateNotFound {
-			return nil, status.Error(codes.NotFound, err.Error())
-		}
-
 		log.Error().Err(err).Msg("failed when try update certificate")
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -160,7 +147,7 @@ func (a *api) UpdateCertificateV1(
 		Updated: updated,
 	}
 
-	log.Printf("update of the certificate was successful")
+	log.Info().Msg("update of the certificate was successful")
 
 	return response, nil
 }
@@ -171,16 +158,13 @@ func (a *api) RemoveCertificateV1(
 	req *desc.RemoveCertificateV1Request,
 ) (*desc.RemoveCertificateV1Response, error) {
 	if err := req.Validate(); err != nil {
+		log.Error().Err(err).Msg("Invalid arguments was received when removing a certificate")
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
 	removed, err := a.repo.RemoveCertificate(ctx, req.CertificateId)
 
 	if err != nil {
-		if errors.Is(err, repo.ErrorCertificateNotFound) {
-			return nil, status.Error(codes.NotFound, err.Error())
-		}
-
 		log.Error().Err(err).Msg("failed when try remove certificate")
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -189,7 +173,7 @@ func (a *api) RemoveCertificateV1(
 		Removed: removed,
 	}
 
-	log.Printf("removing of the certificate was successful")
+	log.Info().Msg("removing of the certificate was successful")
 
 	return response, nil
 }

@@ -19,7 +19,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type OcpCertificateApiClient interface {
 	CreateCertificateV1(ctx context.Context, in *CreateCertificateV1Request, opts ...grpc.CallOption) (*CreateCertificateV1Response, error)
-	DescribeCertificateV1(ctx context.Context, in *DescribeCertificateV1Request, opts ...grpc.CallOption) (*DescribeCertificateV1Response, error)
+	GetCertificateV1(ctx context.Context, in *GetCertificateV1Request, opts ...grpc.CallOption) (*GetCertificateV1Response, error)
 	ListCertificateV1(ctx context.Context, in *ListCertificateV1Request, opts ...grpc.CallOption) (*ListCertificateV1Response, error)
 	UpdateCertificateV1(ctx context.Context, in *UpdateCertificateV1Request, opts ...grpc.CallOption) (*UpdateCertificateV1Response, error)
 	RemoveCertificateV1(ctx context.Context, in *RemoveCertificateV1Request, opts ...grpc.CallOption) (*RemoveCertificateV1Response, error)
@@ -42,9 +42,9 @@ func (c *ocpCertificateApiClient) CreateCertificateV1(ctx context.Context, in *C
 	return out, nil
 }
 
-func (c *ocpCertificateApiClient) DescribeCertificateV1(ctx context.Context, in *DescribeCertificateV1Request, opts ...grpc.CallOption) (*DescribeCertificateV1Response, error) {
-	out := new(DescribeCertificateV1Response)
-	err := c.cc.Invoke(ctx, "/ocp.certificate.api.OcpCertificateApi/DescribeCertificateV1", in, out, opts...)
+func (c *ocpCertificateApiClient) GetCertificateV1(ctx context.Context, in *GetCertificateV1Request, opts ...grpc.CallOption) (*GetCertificateV1Response, error) {
+	out := new(GetCertificateV1Response)
+	err := c.cc.Invoke(ctx, "/ocp.certificate.api.OcpCertificateApi/GetCertificateV1", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func (c *ocpCertificateApiClient) RemoveCertificateV1(ctx context.Context, in *R
 // for forward compatibility
 type OcpCertificateApiServer interface {
 	CreateCertificateV1(context.Context, *CreateCertificateV1Request) (*CreateCertificateV1Response, error)
-	DescribeCertificateV1(context.Context, *DescribeCertificateV1Request) (*DescribeCertificateV1Response, error)
+	GetCertificateV1(context.Context, *GetCertificateV1Request) (*GetCertificateV1Response, error)
 	ListCertificateV1(context.Context, *ListCertificateV1Request) (*ListCertificateV1Response, error)
 	UpdateCertificateV1(context.Context, *UpdateCertificateV1Request) (*UpdateCertificateV1Response, error)
 	RemoveCertificateV1(context.Context, *RemoveCertificateV1Request) (*RemoveCertificateV1Response, error)
@@ -97,8 +97,8 @@ type UnimplementedOcpCertificateApiServer struct {
 func (UnimplementedOcpCertificateApiServer) CreateCertificateV1(context.Context, *CreateCertificateV1Request) (*CreateCertificateV1Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateCertificateV1 not implemented")
 }
-func (UnimplementedOcpCertificateApiServer) DescribeCertificateV1(context.Context, *DescribeCertificateV1Request) (*DescribeCertificateV1Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DescribeCertificateV1 not implemented")
+func (UnimplementedOcpCertificateApiServer) GetCertificateV1(context.Context, *GetCertificateV1Request) (*GetCertificateV1Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCertificateV1 not implemented")
 }
 func (UnimplementedOcpCertificateApiServer) ListCertificateV1(context.Context, *ListCertificateV1Request) (*ListCertificateV1Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListCertificateV1 not implemented")
@@ -140,20 +140,20 @@ func _OcpCertificateApi_CreateCertificateV1_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _OcpCertificateApi_DescribeCertificateV1_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DescribeCertificateV1Request)
+func _OcpCertificateApi_GetCertificateV1_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCertificateV1Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(OcpCertificateApiServer).DescribeCertificateV1(ctx, in)
+		return srv.(OcpCertificateApiServer).GetCertificateV1(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/ocp.certificate.api.OcpCertificateApi/DescribeCertificateV1",
+		FullMethod: "/ocp.certificate.api.OcpCertificateApi/GetCertificateV1",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OcpCertificateApiServer).DescribeCertificateV1(ctx, req.(*DescribeCertificateV1Request))
+		return srv.(OcpCertificateApiServer).GetCertificateV1(ctx, req.(*GetCertificateV1Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -224,8 +224,8 @@ var OcpCertificateApi_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _OcpCertificateApi_CreateCertificateV1_Handler,
 		},
 		{
-			MethodName: "DescribeCertificateV1",
-			Handler:    _OcpCertificateApi_DescribeCertificateV1_Handler,
+			MethodName: "GetCertificateV1",
+			Handler:    _OcpCertificateApi_GetCertificateV1_Handler,
 		},
 		{
 			MethodName: "ListCertificateV1",

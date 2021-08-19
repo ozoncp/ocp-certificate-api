@@ -35,8 +35,6 @@ WORKDIR /root/
 COPY --from=builder /home/developer/go/src/github.com/ozoncp/ocp-certificate-api/bin/ocp-certificate-api .
 COPY --from=builder /home/developer/go/src/github.com/ozoncp/ocp-certificate-api/config.yml .
 RUN chown root:root ocp-certificate-api
-EXPOSE 8000
 EXPOSE 8080
-EXPOSE 8081
 EXPOSE 8082
 CMD ["./ocp-certificate-api"]

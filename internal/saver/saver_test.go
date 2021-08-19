@@ -1,6 +1,7 @@
 package saver_test
 
 import (
+	"context"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -17,12 +18,14 @@ var _ = Describe("Saver", func() {
 	var (
 		ctrl               *gomock.Controller
 		mockFlusher        *mocks.MockFlusher
+		ctx                context.Context
 		certificateChannel chan model.Certificate
 		certificates       []model.Certificate
 		s                  saver.Saver
 	)
 
 	BeforeEach(func() {
+		ctx = context.Background()
 		ctrl = gomock.NewController(GinkgoT())
 		mockFlusher = mocks.NewMockFlusher(ctrl)
 		certificateChannel = make(chan model.Certificate, buffer)
@@ -42,7 +45,7 @@ var _ = Describe("Saver", func() {
 	Context("Saving success", func() {
 		expected := 3
 		BeforeEach(func() {
-			mockFlusher.EXPECT().Flush(gomock.Any()).Times(1).Return(certificates)
+			mockFlusher.EXPECT().Flush(ctx, gomock.Any()).Times(1).Return(certificates)
 		})
 
 		JustBeforeEach(func() {
@@ -65,7 +68,7 @@ var _ = Describe("Saver", func() {
 
 	Context("Saving success", func() {
 		BeforeEach(func() {
-			mockFlusher.EXPECT().Flush(gomock.Any()).Times(1).Return(certificates)
+			mockFlusher.EXPECT().Flush(ctx, gomock.Any()).Times(1).Return(certificates)
 		})
 
 		JustBeforeEach(func() {
@@ -83,7 +86,7 @@ var _ = Describe("Saver", func() {
 
 	Context("Error when try save", func() {
 		BeforeEach(func() {
-			mockFlusher.EXPECT().Flush(gomock.Any()).AnyTimes().Return(nil)
+			mockFlusher.EXPECT().Flush(ctx, gomock.Any()).AnyTimes().Return(nil)
 		})
 
 		JustBeforeEach(func() {

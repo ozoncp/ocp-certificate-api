@@ -10,15 +10,15 @@ import (
 
 const tableName = "certificate"
 
-var ErrorCertificateNotFound error = errors.New("certificate not found")
+var ErrorCertificateNotFound = errors.New("certificate not found")
 
 // Repo - repository interface for entity certificate
 type Repo interface {
 	AddCertificates(ctx context.Context, certificates []model.Certificate) error
-	CreateCertificate(ctx context.Context, certificate model.Certificate) (uint64, error)
+	CreateCertificate(ctx context.Context, certificate *model.Certificate) error
 	UpdateCertificate(ctx context.Context, certificate model.Certificate) (bool, error)
 	ListCertificates(ctx context.Context, limit, offset uint64) ([]model.Certificate, error)
-	DescribeCertificate(ctx context.Context, certificateId uint64) (*model.Certificate, error)
+	GetCertificate(ctx context.Context, certificateId uint64) (*model.Certificate, error)
 	RemoveCertificate(ctx context.Context, certificateId uint64) (bool, error)
 }
 
@@ -63,7 +63,7 @@ func (r *repo) AddCertificates(ctx context.Context, certificates []model.Certifi
 }
 
 // CreateCertificate - creating single certificate in database
-func (r *repo) CreateCertificate(ctx context.Context, certificate model.Certificate) (uint64, error) {
+func (r *repo) CreateCertificate(ctx context.Context, certificate *model.Certificate) error {
 	query := squirrel.Insert(tableName).
 		Columns("user_id", "created", "link").
 		Values(certificate.UserId, certificate.Created, certificate.Link).
@@ -73,10 +73,10 @@ func (r *repo) CreateCertificate(ctx context.Context, certificate model.Certific
 
 	err := query.QueryRowContext(ctx).Scan(&certificate.Id)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
-	return certificate.Id, nil
+	return nil
 }
 
 // UpdateCertificate - update certificate in database
@@ -140,8 +140,8 @@ func (r *repo) ListCertificates(ctx context.Context, limit, offset uint64) ([]mo
 	return certificates, nil
 }
 
-// DescribeCertificate - get single certificate from database
-func (r *repo) DescribeCertificate(ctx context.Context, certificateId uint64) (*model.Certificate, error) {
+// GetCertificate - get single certificate from database
+func (r *repo) GetCertificate(ctx context.Context, certificateId uint64) (*model.Certificate, error) {
 	query := squirrel.Select("id", "user_id", "created", "link").
 		From(tableName).
 		Where(squirrel.Eq{"id": certificateId}).

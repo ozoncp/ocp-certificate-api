@@ -16,7 +16,7 @@ service OcpCertificateApi {
     };
   }
 
-  rpc DescribeCertificateV1(DescribeCertificateV1Request) returns (DescribeCertificateV1Response) {
+  rpc GetCertificateV1(GetCertificateV1Request) returns (GetCertificateV1Response) {
     option (google.api.http) = {
       get: "/v1/certificates/{certificate_id}"
     };
@@ -59,10 +59,10 @@ message CreateCertificateV1Response {
 }
 
 // Read
-message DescribeCertificateV1Request {
+message GetCertificateV1Request {
   uint64 certificate_id = 1 [(validate.rules).uint64.gt = 0];
 }
-message DescribeCertificateV1Response {
+message GetCertificateV1Response {
   Certificate certificate = 1;
 }
 

@@ -5,6 +5,10 @@ import (
 	"os"
 )
 
+const configYML = "config.yml"
+
+var Get *Config
+
 // Database - сontains all parameters database connection
 type Database struct {
 	Host     string `yaml:"host"`
@@ -41,20 +45,18 @@ type Config struct {
 	Database Database `yaml:"database"`
 }
 
-// Read - read configurations from file
-func Read(path string) (*Config, error) {
-	config := &Config{}
-
-	file, err := os.Open(path)
+// Init - read configurations from file and init
+func Init() error {
+	file, err := os.Open(configYML)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer file.Close()
 
 	decoder := yaml.NewDecoder(file)
-	if err := decoder.Decode(&config); err != nil {
-		return nil, err
+	if err := decoder.Decode(&Get); err != nil {
+		return err
 	}
 
-	return config, nil
+	return nil
 }

@@ -104,7 +104,7 @@ var _ = Describe("Repo", func() {
 		})
 	})
 
-	Context("Test DescribeCertificate", func() {
+	Context("Test GetCertificate", func() {
 		BeforeEach(func() {
 			rows := sqlmock.NewRows([]string{"id", "user_id", "created", "link"}).AddRow(
 				certificates[2].Id,
@@ -117,8 +117,8 @@ var _ = Describe("Repo", func() {
 				WillReturnRows(rows)
 		})
 
-		It("Test describe certificate", func() {
-			cert, err := r.DescribeCertificate(ctx, certificates[2].Id)
+		It("Test get certificate", func() {
+			cert, err := r.GetCertificate(ctx, certificates[2].Id)
 			Expect(err).Should(BeNil())
 			Expect(*cert).Should(BeEquivalentTo(certificates[2]))
 		})

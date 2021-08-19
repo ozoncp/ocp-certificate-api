@@ -17,30 +17,21 @@ import (
 	log "github.com/rs/zerolog/log"
 )
 
-var (
-	cfg *config.Config
-	err error
-)
-
-const (
-	configYML = "config.yml"
-)
-
 func runGrpc() error {
-	listen, err := net.Listen("tcp", cfg.Grpc.Address)
+	listen, err := net.Listen("tcp", config.Get.Grpc.Address)
 	if err != nil {
 		log.Fatal().Msgf("failed to listen: %v", err)
 	}
 
 	dataSourceName := fmt.Sprintf("host=%v port=%v user=%v password=%v dbname=%v sslmode=%v",
-		cfg.Database.Host,
-		cfg.Database.Port,
-		cfg.Database.User,
-		cfg.Database.Password,
-		cfg.Database.Name,
-		cfg.Database.SslMode)
+		config.Get.Database.Host,
+		config.Get.Database.Port,
+		config.Get.Database.User,
+		config.Get.Database.Password,
+		config.Get.Database.Name,
+		config.Get.Database.SslMode)
 
-	db, err := sqlx.Connect(cfg.Database.Driver, dataSourceName)
+	db, err := sqlx.Connect(config.Get.Database.Driver, dataSourceName)
 	if err != nil {
 		log.Error().Err(err).Msgf("failed to create connect to database")
 		return err
@@ -48,7 +39,7 @@ func runGrpc() error {
 
 	defer db.Close()
 
-	if err := db.Ping(); err != nil {
+	if err = db.Ping(); err != nil {
 		log.Error().Err(err).Msgf("failed to ping to database")
 		return err
 	}
@@ -57,7 +48,7 @@ func runGrpc() error {
 	newRepo := repo.NewRepo(db)
 	desc.RegisterOcpCertificateApiServer(grpcServer, api.NewOcpCertificateApi(newRepo))
 
-	if err := grpcServer.Serve(listen); err != nil {
+	if err = grpcServer.Serve(listen); err != nil {
 		log.Fatal().Msgf("failed to serve: %v", err)
 	}
 
@@ -72,29 +63,29 @@ func runJson() {
 	mux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithInsecure()}
 
-	err := desc.RegisterOcpCertificateApiHandlerFromEndpoint(ctx, mux, cfg.Grpc.Address, opts)
+	err := desc.RegisterOcpCertificateApiHandlerFromEndpoint(ctx, mux, config.Get.Grpc.Address, opts)
 	if err != nil {
 		panic(err)
 	}
 
-	err = http.ListenAndServe(cfg.Json.Address, mux)
+	err = http.ListenAndServe(config.Get.Json.Address, mux)
 	if err != nil {
 		panic(err)
 	}
 }
 
 func main() {
-	cfg, err = config.Read(configYML)
+	err := config.Init()
 	if err != nil {
-		log.Fatal().Msgf("failed read configuration file: %v", err)
+		log.Fatal().Msgf("failed read and init configuration file: %v", err)
 		return
 	}
 
 	go runJson()
 
-	if err := runGrpc(); err != nil {
+	if err = runGrpc(); err != nil {
 		log.Fatal().Msgf("failed to start gRPC server: %v", err)
 	}
 
-	fmt.Println("run success")
+	log.Info().Msgf("run success")
 }
