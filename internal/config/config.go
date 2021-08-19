@@ -7,7 +7,11 @@ import (
 
 const configYML = "config.yml"
 
-var Get *Config
+var cfg *Config
+
+func ConfigInstance() *Config {
+	return cfg
+}
 
 // Database - сontains all parameters database connection
 type Database struct {
@@ -45,8 +49,12 @@ type Config struct {
 	Database Database `yaml:"database"`
 }
 
-// Init - read configurations from file and init
-func Init() error {
+// ReadConfigYML - read configurations from file and init instance Config
+func ReadConfigYML() error {
+	if cfg != nil {
+		return nil
+	}
+
 	file, err := os.Open(configYML)
 	if err != nil {
 		return err
@@ -54,7 +62,7 @@ func Init() error {
 	defer file.Close()
 
 	decoder := yaml.NewDecoder(file)
-	if err := decoder.Decode(&Get); err != nil {
+	if err = decoder.Decode(&cfg); err != nil {
 		return err
 	}
 

@@ -18,20 +18,20 @@ import (
 )
 
 func runGrpc() error {
-	listen, err := net.Listen("tcp", config.Get.Grpc.Address)
+	listen, err := net.Listen("tcp", config.ConfigInstance().Grpc.Address)
 	if err != nil {
 		log.Fatal().Msgf("failed to listen: %v", err)
 	}
 
 	dataSourceName := fmt.Sprintf("host=%v port=%v user=%v password=%v dbname=%v sslmode=%v",
-		config.Get.Database.Host,
-		config.Get.Database.Port,
-		config.Get.Database.User,
-		config.Get.Database.Password,
-		config.Get.Database.Name,
-		config.Get.Database.SslMode)
+		config.ConfigInstance().Database.Host,
+		config.ConfigInstance().Database.Port,
+		config.ConfigInstance().Database.User,
+		config.ConfigInstance().Database.Password,
+		config.ConfigInstance().Database.Name,
+		config.ConfigInstance().Database.SslMode)
 
-	db, err := sqlx.Connect(config.Get.Database.Driver, dataSourceName)
+	db, err := sqlx.Connect(config.ConfigInstance().Database.Driver, dataSourceName)
 	if err != nil {
 		log.Error().Err(err).Msgf("failed to create connect to database")
 		return err
@@ -63,19 +63,19 @@ func runJson() {
 	mux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithInsecure()}
 
-	err := desc.RegisterOcpCertificateApiHandlerFromEndpoint(ctx, mux, config.Get.Grpc.Address, opts)
+	err := desc.RegisterOcpCertificateApiHandlerFromEndpoint(ctx, mux, config.ConfigInstance().Grpc.Address, opts)
 	if err != nil {
 		panic(err)
 	}
 
-	err = http.ListenAndServe(config.Get.Json.Address, mux)
+	err = http.ListenAndServe(config.ConfigInstance().Json.Address, mux)
 	if err != nil {
 		panic(err)
 	}
 }
 
 func main() {
-	err := config.Init()
+	err := config.ReadConfigYML()
 	if err != nil {
 		log.Fatal().Msgf("failed read and init configuration file: %v", err)
 		return
