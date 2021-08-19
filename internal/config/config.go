@@ -9,8 +9,8 @@ const configYML = "config.yml"
 
 var cfg *Config
 
-func GetConfigInstance() *Config {
-	return cfg
+func GetConfigInstance() Config {
+	return *cfg
 }
 
 // Database - сontains all parameters database connection
