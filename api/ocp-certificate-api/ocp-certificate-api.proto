@@ -2,7 +2,6 @@ syntax = "proto3";
 
 import "google/protobuf/timestamp.proto";
 import "google/api/annotations.proto";
-import "google/protobuf/empty.proto";
 import "github.com/envoyproxy/protoc-gen-validate/validate/validate.proto";
 
 option go_package = "github.com/ozoncp/ocp-certificate-api/pkg/ocp-certificate-api;ocp_certificate_api";
@@ -17,13 +16,13 @@ service OcpCertificateApi {
     };
   }
 
-  rpc DescribeCertificateV1(DescribeCertificateV1Request) returns (DescribeCertificateV1Response) {
+  rpc GetCertificateV1(GetCertificateV1Request) returns (GetCertificateV1Response) {
     option (google.api.http) = {
       get: "/v1/certificates/{certificate_id}"
     };
   }
 
-  rpc ListCertificateV1(google.protobuf.Empty) returns (ListCertificateV1Response) {
+  rpc ListCertificateV1(ListCertificateV1Request) returns (ListCertificateV1Response) {
     option (google.api.http) = {
       get: "/v1/certificates"
     };
@@ -56,17 +55,24 @@ message CreateCertificateV1Request {
 }
 
 message CreateCertificateV1Response {
+  uint64 certificate_id = 1;
 }
 
 // Read
-message DescribeCertificateV1Request {
+message GetCertificateV1Request {
   uint64 certificate_id = 1 [(validate.rules).uint64.gt = 0];
 }
-message DescribeCertificateV1Response {
+message GetCertificateV1Response {
+  Certificate certificate = 1;
 }
 
 // Read All
+message ListCertificateV1Request {
+  uint64 limit = 1 [(validate.rules).uint64.gt = 0];
+  uint64 offset = 2 [(validate.rules).uint64.gt = 0];
+}
 message ListCertificateV1Response {
+  repeated Certificate certificates = 1;
 }
 
 // Update
@@ -74,6 +80,7 @@ message UpdateCertificateV1Request {
   Certificate certificate = 1;
 }
 message UpdateCertificateV1Response {
+  bool updated = 1;
 }
 
 // Delete
@@ -81,4 +88,5 @@ message RemoveCertificateV1Request {
   uint64 certificate_id = 1 [(validate.rules).uint64.gt = 0];
 }
 message RemoveCertificateV1Response {
+  bool removed = 1;
 }

@@ -1,6 +1,7 @@
 package flusher_test
 
 import (
+	"context"
 	"errors"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
@@ -17,59 +18,70 @@ var _ = Describe("Flusher", func() {
 	now := time.Now()
 	var (
 		ctrl         *gomock.Controller
+		ctx          context.Context
 		mockRepo     *mocks.MockRepo
 		certificates []model.Certificate
 		results      []model.Certificate
 		f            flusher.Flusher
-		chunkSize    int
 	)
+
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockRepo = mocks.NewMockRepo(ctrl)
+		ctx = context.Background()
 
 		certificates = []model.Certificate{
-			0: {1.0, 1.0, now, "http://link"},
-			1: {2.0, 2.0, now, "http://link"},
-			2: {3.0, 3.0, now, "http://link"},
+			{1.0, 1.0, now, "http://link"},
+			{2.0, 2.0, now, "http://link"},
+			{3.0, 3.0, now, "http://link"},
+			{4.0, 4.0, now, "http://link"},
 		}
-
-		chunkSize = 2
 	})
 
-	JustBeforeEach(func() {
-		f = flusher.NewFlusher(chunkSize, mockRepo)
-		results = f.Flush(certificates)
+	AfterEach(func() {
+		ctrl.Finish()
 	})
 
 	Context("Save all in repository", func() {
+		chunkSize := 2
 		BeforeEach(func() {
-			mockRepo.EXPECT().AddCertificates(gomock.Any()).Return(nil).AnyTimes()
+			mockRepo.EXPECT().AddCertificates(ctx, gomock.Any()).Return(nil).MinTimes(1)
 		})
 
 		It("", func() {
+			f = flusher.NewFlusher(chunkSize, mockRepo)
+			results = f.Flush(ctx, certificates)
 			Expect(results).Should(BeNil())
 		})
 	})
 
 	Context("Error when saving in repository", func() {
+		chunkSize := 2
 		BeforeEach(func() {
-			mockRepo.EXPECT().AddCertificates(gomock.Any()).Return(mockError)
+			mockRepo.EXPECT().AddCertificates(ctx, gomock.Any()).Return(mockError).MinTimes(1)
 		})
 
 		It("", func() {
-			Expect(len(results)).Should(BeEquivalentTo(len(certificates[:chunkSize])))
-			Expect(results).Should(BeEquivalentTo(certificates[:chunkSize]))
+			f = flusher.NewFlusher(chunkSize, mockRepo)
+			results = f.Flush(ctx, certificates)
+			Expect(len(results)).Should(BeEquivalentTo(len(certificates)))
+			Expect(results).Should(BeEquivalentTo(certificates))
 		})
 	})
 
 	Context("Partial saving to repo", func() {
+		chunkSize := 2
 		BeforeEach(func() {
-			mockRepo.EXPECT().AddCertificates(gomock.Any()).Return(mockError)
-			mockRepo.EXPECT().AddCertificates(gomock.Any()).Return(nil).Times(1)
+			gomock.InOrder(
+				mockRepo.EXPECT().AddCertificates(ctx, gomock.Any()).Return(nil),
+				mockRepo.EXPECT().AddCertificates(ctx, gomock.Any()).Return(mockError),
+			)
 		})
 
 		It("", func() {
-			Expect(results).Should(BeEquivalentTo(certificates[:chunkSize]))
+			f = flusher.NewFlusher(chunkSize, mockRepo)
+			results = f.Flush(ctx, certificates)
+			Expect(results).Should(BeEquivalentTo(certificates[chunkSize:]))
 		})
 	})
 })
