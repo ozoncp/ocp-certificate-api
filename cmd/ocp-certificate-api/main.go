@@ -14,6 +14,9 @@ import (
 	"google.golang.org/grpc"
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func runGrpc() error {
@@ -55,9 +58,15 @@ func runGrpc() error {
 }
 
 func runJson() {
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go func() {
+		oscall := <-c
+		log.Info().Msgf("system call:%+v", oscall)
+		cancel()
+	}()
 
 	mux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithInsecure()}
@@ -67,9 +76,28 @@ func runJson() {
 		panic(err)
 	}
 
-	err = http.ListenAndServe(config.GetConfigInstance().Json.Address, mux)
-	if err != nil {
-		panic(err)
+	srv := &http.Server{
+		Addr:    config.GetConfigInstance().Json.Address,
+		Handler: mux,
+	}
+
+	go func() {
+		if err = srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal().Msgf("listen:%+s\n", err)
+		}
+	}()
+
+	log.Info().Msg("server started")
+	<-ctx.Done()
+	log.Info().Msg("server stopped")
+
+	if err = srv.Shutdown(ctx); err != nil {
+		log.Fatal().Msgf("server shutdown failed:%+s", err)
+	}
+
+	log.Fatal().Msg("server correctly completed its work")
+	if err == http.ErrServerClosed {
+		err = nil
 	}
 }
 

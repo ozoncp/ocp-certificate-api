@@ -16,7 +16,34 @@ OCP Certificate Api - service for work and management of the certificate platfor
 #### 1 Step [Clone]
 - git clone https://github.com/ozoncp/ocp-certificate-api.git
 - cd ocp-certificate-api
-#### 2 Step [Deploy]
+#### 2 Step [Dependence]
+```sh 
+    make deps
+```
+#### 3 Step [Build]
+```sh 
+    make build
+```
+#### 4 Step [Run]
+```sh 
+    make start
+```
+#### 5 Step [Migrate]
+```sh 
+    make migrate
+```
+###OR
+#### All steps [Build+Deploy+Run+Migrate]
 ```sh 
     make deploy
+```
+-----
+##Stop container
+```sh 
+    make stop
+```
+##Remove containers and images
+```sh 
+    docker rm -vf $(docker ps -a -q)
+    docker rmi -f $(docker images -a -q)
 ```

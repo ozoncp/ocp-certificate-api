@@ -10,7 +10,10 @@ test:
 	go test -v ./...
 
 .PHONY: deploy
-deploy: .compose-build .compose-up .migrate
+deploy: vendor-proto .generate .build .compose-build .compose-up .migrate
+
+.PHONY: start
+start: .compose-build .compose-up .migrate
 
 .PHONY: .compose-build
 .compose-build:
@@ -19,6 +22,16 @@ deploy: .compose-build .compose-up .migrate
 .PHONY: .compose-up
 .compose-up:
 	docker-compose up -d
+
+.PHONY: stop
+stop: .compose-stop
+
+.PHONY: .compose-stop
+.compose-stop:
+	docker-compose stop
+
+.PHONY: migrate
+migrate: .migrate
 
 .PHONY: .migrate
 .migrate:
