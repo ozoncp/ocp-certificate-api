@@ -5,33 +5,32 @@ import (
 	"fmt"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
+	api "github.com/ozoncp/ocp-certificate-api/internal/api"
 	"github.com/ozoncp/ocp-certificate-api/internal/config"
 	"github.com/ozoncp/ocp-certificate-api/internal/repo"
+	desc "github.com/ozoncp/ocp-certificate-api/pkg/ocp-certificate-api"
+	log "github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"net"
 	"net/http"
-
-	_ "github.com/lib/pq"
-	api "github.com/ozoncp/ocp-certificate-api/internal/api"
-	desc "github.com/ozoncp/ocp-certificate-api/pkg/ocp-certificate-api"
-	log "github.com/rs/zerolog/log"
 )
 
 func runGrpc() error {
-	listen, err := net.Listen("tcp", config.ConfigInstance().Grpc.Address)
+	listen, err := net.Listen("tcp", config.GetConfigInstance().Grpc.Address)
 	if err != nil {
 		log.Fatal().Msgf("failed to listen: %v", err)
 	}
 
 	dataSourceName := fmt.Sprintf("host=%v port=%v user=%v password=%v dbname=%v sslmode=%v",
-		config.ConfigInstance().Database.Host,
-		config.ConfigInstance().Database.Port,
-		config.ConfigInstance().Database.User,
-		config.ConfigInstance().Database.Password,
-		config.ConfigInstance().Database.Name,
-		config.ConfigInstance().Database.SslMode)
+		config.GetConfigInstance().Database.Host,
+		config.GetConfigInstance().Database.Port,
+		config.GetConfigInstance().Database.User,
+		config.GetConfigInstance().Database.Password,
+		config.GetConfigInstance().Database.Name,
+		config.GetConfigInstance().Database.SslMode)
 
-	db, err := sqlx.Connect(config.ConfigInstance().Database.Driver, dataSourceName)
+	db, err := sqlx.Connect(config.GetConfigInstance().Database.Driver, dataSourceName)
 	if err != nil {
 		log.Error().Err(err).Msgf("failed to create connect to database")
 		return err
@@ -63,12 +62,12 @@ func runJson() {
 	mux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithInsecure()}
 
-	err := desc.RegisterOcpCertificateApiHandlerFromEndpoint(ctx, mux, config.ConfigInstance().Grpc.Address, opts)
+	err := desc.RegisterOcpCertificateApiHandlerFromEndpoint(ctx, mux, config.GetConfigInstance().Grpc.Address, opts)
 	if err != nil {
 		panic(err)
 	}
 
-	err = http.ListenAndServe(config.ConfigInstance().Json.Address, mux)
+	err = http.ListenAndServe(config.GetConfigInstance().Json.Address, mux)
 	if err != nil {
 		panic(err)
 	}
