@@ -9,7 +9,7 @@ const configYML = "config.yml"
 
 var cfg *Config
 
-func ConfigInstance() *Config {
+func GetConfigInstance() *Config {
 	return cfg
 }
 
