@@ -10,7 +10,10 @@ const configYML = "config.yml"
 var cfg *Config
 
 func GetConfigInstance() Config {
-	return *cfg
+	if cfg != nil {
+		return *cfg
+	}
+	return Config{}
 }
 
 // Database - сontains all parameters database connection
