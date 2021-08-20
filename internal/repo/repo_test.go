@@ -25,11 +25,10 @@ var _ = Describe("Repo", func() {
 		ctx          context.Context
 		r            repo.Repo
 		certificates []model.Certificate
-
-		err error
 	)
 
 	BeforeEach(func() {
+		var err error
 		db, mock, err = sqlmock.New()
 		Expect(err).Should(BeNil())
 		sqlxDB = sqlx.NewDb(db, "sqlmock")
@@ -46,6 +45,7 @@ var _ = Describe("Repo", func() {
 	})
 
 	AfterEach(func() {
+		var err error
 		mock.ExpectClose()
 		err = db.Close()
 		Expect(err).Should(BeNil())
@@ -80,9 +80,10 @@ var _ = Describe("Repo", func() {
 		})
 
 		It("Test create certificate", func() {
-			id, err := r.CreateCertificate(ctx, certificates[0])
+			certificate := &model.Certificate{Id: 1.0, UserId: 1.0, Created: now, Link: "http://link"}
+			err := r.CreateCertificate(ctx, certificate)
 			Expect(err).Should(BeNil())
-			Expect(id).Should(BeEquivalentTo(1))
+			Expect(certificate.Id).Should(BeEquivalentTo(1))
 		})
 	})
 

@@ -50,12 +50,11 @@ func (mr *MockRepoMockRecorder) AddCertificates(arg0, arg1 interface{}) *gomock.
 }
 
 // CreateCertificate mocks base method.
-func (m *MockRepo) CreateCertificate(arg0 context.Context, arg1 model.Certificate) (uint64, error) {
+func (m *MockRepo) CreateCertificate(arg0 context.Context, arg1 *model.Certificate) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateCertificate", arg0, arg1)
-	ret0, _ := ret[0].(uint64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // CreateCertificate indicates an expected call of CreateCertificate.
