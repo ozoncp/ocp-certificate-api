@@ -42,8 +42,8 @@ func buildDB() *sqlx.DB {
 	return db
 }
 
-// buildGrpc - building grpc server
-func buildGrpc(db *sqlx.DB) (*grpc.Server, net.Listener) {
+// grpcServer - grpc server
+func grpcServer(db *sqlx.DB) (*grpc.Server, net.Listener) {
 	listen, err := net.Listen("tcp", config.GetConfigInstance().Grpc.Address)
 	if err != nil {
 		log.Fatal().Msgf("failed to listen: %v", err)
@@ -56,8 +56,8 @@ func buildGrpc(db *sqlx.DB) (*grpc.Server, net.Listener) {
 	return grpcServer, listen
 }
 
-// buildRest - building rest server for send json
-func buildRest(ctx context.Context) (*http.Server, error) {
+// restServer - rest server for send json
+func restServer(ctx context.Context) (*http.Server, error) {
 	mux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithInsecure()}
 	err := desc.RegisterOcpCertificateApiHandlerFromEndpoint(ctx, mux, config.GetConfigInstance().Grpc.Address, opts)
@@ -92,28 +92,14 @@ func main() {
 	db := buildDB()
 	defer db.Close()
 
-	// Build Rest
-	restServer, err := buildRest(ctx)
+	// Rest server
+	restServer, err := restServer(ctx)
 	if err != nil {
 		log.Fatal().Msgf("failed start rest server: %v", err)
 	}
 
-	// Build Grpc
-	grpcServer, listen := buildGrpc(db)
-
-	// Signal stopping servers
-	go func() {
-		oscall := <-c
-		log.Info().Msgf("system call:%+v", oscall)
-
-		if err = restServer.Shutdown(ctx); err != nil {
-			log.Printf("shutdown error: %v\n", err)
-		}
-		grpcServer.GracefulStop()
-
-		log.Info().Msg("servers stopped")
-		cancel()
-	}()
+	// Grpc server
+	grpcServer, listen := grpcServer(db)
 
 	// Rest server running
 	grp.Go(func() error {
@@ -124,6 +110,19 @@ func main() {
 	grp.Go(func() error {
 		return grpcServer.Serve(listen)
 	})
+
+	// Signal stopping servers
+
+	oscall := <-c
+	log.Info().Msgf("system call:%+v", oscall)
+
+	if err = restServer.Shutdown(ctx); err != nil {
+		log.Printf("shutdown error: %v\n", err)
+	}
+	grpcServer.GracefulStop()
+
+	log.Info().Msg("servers stopped")
+	cancel()
 
 	// Handle sync group
 	if err = grp.Wait(); err != http.ErrServerClosed {
