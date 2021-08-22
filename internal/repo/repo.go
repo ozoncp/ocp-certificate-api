@@ -14,7 +14,7 @@ var ErrorCertificateNotFound = errors.New("certificate not found")
 
 // Repo - repository interface for entity certificate
 type Repo interface {
-	AddCertificates(ctx context.Context, certificates []model.Certificate) error
+	MultiCreateCertificates(ctx context.Context, certificates []model.Certificate) ([]uint64, error)
 	CreateCertificate(ctx context.Context, certificate *model.Certificate) error
 	UpdateCertificate(ctx context.Context, certificate model.Certificate) (bool, error)
 	ListCertificates(ctx context.Context, limit, offset uint64) ([]model.Certificate, error)
@@ -33,11 +33,12 @@ func NewRepo(db *sqlx.DB) Repo {
 	}
 }
 
-// AddCertificates - creating array certificates in database
-func (r *repo) AddCertificates(ctx context.Context, certificates []model.Certificate) error {
+// MultiCreateCertificates - creating array certificates in database
+func (r *repo) MultiCreateCertificates(ctx context.Context, certificates []model.Certificate) ([]uint64, error) {
 	query := squirrel.
 		Insert(tableName).
 		Columns("user_id", "created", "link").
+		Suffix("RETURNING \"id\"").
 		RunWith(r.db).
 		PlaceholderFormat(squirrel.Dollar)
 
@@ -45,21 +46,21 @@ func (r *repo) AddCertificates(ctx context.Context, certificates []model.Certifi
 		query = query.Values(certificate.UserId, certificate.Created, certificate.Link)
 	}
 
-	exec, err := query.ExecContext(ctx)
+	rows, err := query.QueryContext(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	rowsAffected, err := exec.RowsAffected()
-	if err != nil {
-		return err
+	certIds := make([]uint64, 0)
+	for rows.Next() {
+		var id uint64
+		err = rows.Scan(&id)
+		if err != nil {
+			return nil, err
+		}
+		certIds = append(certIds, id)
 	}
-
-	if rowsAffected <= 0 {
-		return ErrorCertificateNotFound
-	}
-
-	return nil
+	return certIds, nil
 }
 
 // CreateCertificate - creating single certificate in database

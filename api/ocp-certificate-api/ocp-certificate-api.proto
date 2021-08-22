@@ -9,16 +9,23 @@ option go_package = "github.com/ozoncp/ocp-certificate-api/pkg/ocp-certificate-a
 package ocp.certificate.api;
 
 service OcpCertificateApi {
-  rpc CreateCertificateV1(CreateCertificateV1Request) returns (CreateCertificateV1Response) {
+  rpc MultiCreateCertificatesV1(MultiCreateCertificatesV1Request) returns (MultiCreateCertificatesV1Response) {
     option (google.api.http) = {
       post: "/v1/certificates"
       body: "*"
     };
   }
 
+  rpc CreateCertificateV1(CreateCertificateV1Request) returns (CreateCertificateV1Response) {
+    option (google.api.http) = {
+      post: "/v1/certificate"
+      body: "*"
+    };
+  }
+
   rpc GetCertificateV1(GetCertificateV1Request) returns (GetCertificateV1Response) {
     option (google.api.http) = {
-      get: "/v1/certificates/{certificate_id}"
+      get: "/v1/certificate/{certificate_id}"
     };
   }
 
@@ -30,14 +37,14 @@ service OcpCertificateApi {
 
   rpc UpdateCertificateV1(UpdateCertificateV1Request) returns (UpdateCertificateV1Response) {
     option (google.api.http) = {
-      put: "/v1/certificates"
+      put: "/v1/certificate"
       body: "*"
     };
   }
 
   rpc RemoveCertificateV1(RemoveCertificateV1Request) returns (RemoveCertificateV1Response) {
     option (google.api.http) = {
-      delete: "/v1/certificates/{certificate_id}"
+      delete: "/v1/certificate/{certificate_id}"
     };
   }
 }
@@ -47,6 +54,15 @@ message Certificate {
   uint64 userId = 2 [(validate.rules).uint64.gt = 0];
   google.protobuf.Timestamp created = 3;
   string link = 4;
+}
+
+// Multi create
+message MultiCreateCertificatesV1Request {
+  repeated Certificate certificates = 1 [(validate.rules).repeated.min_items = 1];
+}
+
+message MultiCreateCertificatesV1Response {
+  repeated uint64 certificate_ids = 1 [(validate.rules).repeated.min_items = 1];
 }
 
 // Create

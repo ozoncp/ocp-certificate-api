@@ -35,20 +35,6 @@ func (m *MockRepo) EXPECT() *MockRepoMockRecorder {
 	return m.recorder
 }
 
-// AddCertificates mocks base method.
-func (m *MockRepo) AddCertificates(arg0 context.Context, arg1 []model.Certificate) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddCertificates", arg0, arg1)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// AddCertificates indicates an expected call of AddCertificates.
-func (mr *MockRepoMockRecorder) AddCertificates(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddCertificates", reflect.TypeOf((*MockRepo)(nil).AddCertificates), arg0, arg1)
-}
-
 // CreateCertificate mocks base method.
 func (m *MockRepo) CreateCertificate(arg0 context.Context, arg1 *model.Certificate) error {
 	m.ctrl.T.Helper()
@@ -91,6 +77,21 @@ func (m *MockRepo) ListCertificates(arg0 context.Context, arg1, arg2 uint64) ([]
 func (mr *MockRepoMockRecorder) ListCertificates(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListCertificates", reflect.TypeOf((*MockRepo)(nil).ListCertificates), arg0, arg1, arg2)
+}
+
+// MultiCreateCertificates mocks base method.
+func (m *MockRepo) MultiCreateCertificates(arg0 context.Context, arg1 []model.Certificate) ([]uint64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MultiCreateCertificates", arg0, arg1)
+	ret0, _ := ret[0].([]uint64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// MultiCreateCertificates indicates an expected call of MultiCreateCertificates.
+func (mr *MockRepoMockRecorder) MultiCreateCertificates(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MultiCreateCertificates", reflect.TypeOf((*MockRepo)(nil).MultiCreateCertificates), arg0, arg1)
 }
 
 // RemoveCertificate mocks base method.

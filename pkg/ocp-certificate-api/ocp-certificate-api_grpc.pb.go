@@ -18,6 +18,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type OcpCertificateApiClient interface {
+	MultiCreateCertificatesV1(ctx context.Context, in *MultiCreateCertificatesV1Request, opts ...grpc.CallOption) (*MultiCreateCertificatesV1Response, error)
 	CreateCertificateV1(ctx context.Context, in *CreateCertificateV1Request, opts ...grpc.CallOption) (*CreateCertificateV1Response, error)
 	GetCertificateV1(ctx context.Context, in *GetCertificateV1Request, opts ...grpc.CallOption) (*GetCertificateV1Response, error)
 	ListCertificateV1(ctx context.Context, in *ListCertificateV1Request, opts ...grpc.CallOption) (*ListCertificateV1Response, error)
@@ -31,6 +32,15 @@ type ocpCertificateApiClient struct {
 
 func NewOcpCertificateApiClient(cc grpc.ClientConnInterface) OcpCertificateApiClient {
 	return &ocpCertificateApiClient{cc}
+}
+
+func (c *ocpCertificateApiClient) MultiCreateCertificatesV1(ctx context.Context, in *MultiCreateCertificatesV1Request, opts ...grpc.CallOption) (*MultiCreateCertificatesV1Response, error) {
+	out := new(MultiCreateCertificatesV1Response)
+	err := c.cc.Invoke(ctx, "/ocp.certificate.api.OcpCertificateApi/MultiCreateCertificatesV1", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *ocpCertificateApiClient) CreateCertificateV1(ctx context.Context, in *CreateCertificateV1Request, opts ...grpc.CallOption) (*CreateCertificateV1Response, error) {
@@ -82,6 +92,7 @@ func (c *ocpCertificateApiClient) RemoveCertificateV1(ctx context.Context, in *R
 // All implementations must embed UnimplementedOcpCertificateApiServer
 // for forward compatibility
 type OcpCertificateApiServer interface {
+	MultiCreateCertificatesV1(context.Context, *MultiCreateCertificatesV1Request) (*MultiCreateCertificatesV1Response, error)
 	CreateCertificateV1(context.Context, *CreateCertificateV1Request) (*CreateCertificateV1Response, error)
 	GetCertificateV1(context.Context, *GetCertificateV1Request) (*GetCertificateV1Response, error)
 	ListCertificateV1(context.Context, *ListCertificateV1Request) (*ListCertificateV1Response, error)
@@ -94,6 +105,9 @@ type OcpCertificateApiServer interface {
 type UnimplementedOcpCertificateApiServer struct {
 }
 
+func (UnimplementedOcpCertificateApiServer) MultiCreateCertificatesV1(context.Context, *MultiCreateCertificatesV1Request) (*MultiCreateCertificatesV1Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MultiCreateCertificatesV1 not implemented")
+}
 func (UnimplementedOcpCertificateApiServer) CreateCertificateV1(context.Context, *CreateCertificateV1Request) (*CreateCertificateV1Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateCertificateV1 not implemented")
 }
@@ -120,6 +134,24 @@ type UnsafeOcpCertificateApiServer interface {
 
 func RegisterOcpCertificateApiServer(s grpc.ServiceRegistrar, srv OcpCertificateApiServer) {
 	s.RegisterService(&OcpCertificateApi_ServiceDesc, srv)
+}
+
+func _OcpCertificateApi_MultiCreateCertificatesV1_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MultiCreateCertificatesV1Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OcpCertificateApiServer).MultiCreateCertificatesV1(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ocp.certificate.api.OcpCertificateApi/MultiCreateCertificatesV1",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OcpCertificateApiServer).MultiCreateCertificatesV1(ctx, req.(*MultiCreateCertificatesV1Request))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _OcpCertificateApi_CreateCertificateV1_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -219,6 +251,10 @@ var OcpCertificateApi_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "ocp.certificate.api.OcpCertificateApi",
 	HandlerType: (*OcpCertificateApiServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "MultiCreateCertificatesV1",
+			Handler:    _OcpCertificateApi_MultiCreateCertificatesV1_Handler,
+		},
 		{
 			MethodName: "CreateCertificateV1",
 			Handler:    _OcpCertificateApi_CreateCertificateV1_Handler,

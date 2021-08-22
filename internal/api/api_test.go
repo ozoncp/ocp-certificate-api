@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/ozoncp/ocp-certificate-api/internal/api"
 	"github.com/ozoncp/ocp-certificate-api/internal/model"
+	"github.com/ozoncp/ocp-certificate-api/internal/producer"
 	"github.com/ozoncp/ocp-certificate-api/internal/repo"
 	desc "github.com/ozoncp/ocp-certificate-api/pkg/ocp-certificate-api"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -17,6 +18,7 @@ import (
 
 var _ = Describe("Api", func() {
 	const tableName = "certificate"
+	const batchSize = 2
 
 	now := time.Now()
 
@@ -29,6 +31,7 @@ var _ = Describe("Api", func() {
 		r            repo.Repo
 		grpc         desc.OcpCertificateApiServer
 		certificates []model.Certificate
+		p            producer.Producer
 
 		err error
 	)
@@ -41,7 +44,9 @@ var _ = Describe("Api", func() {
 
 		ctx = context.Background()
 		r = repo.NewRepo(sqlxDB)
-		grpc = api.NewOcpCertificateApi(r)
+		p = producer.NewProducer()
+		p.Init(ctx)
+		grpc = api.NewOcpCertificateApi(r, p, batchSize)
 
 		certificates = []model.Certificate{
 			{1.0, 1.0, now, "http://link"},
@@ -54,7 +59,55 @@ var _ = Describe("Api", func() {
 	AfterEach(func() {
 		mock.ExpectClose()
 		err = db.Close()
+		p.Close()
 		Expect(err).Should(BeNil())
+	})
+
+	Context("Test MultiCreateCertificatesV1", func() {
+		var req *desc.MultiCreateCertificatesV1Request
+
+		BeforeEach(func() {
+			multiCertificates := make([]*desc.Certificate, 0, len(certificates))
+			for _, certificate := range certificates {
+				multiCertificates = append(multiCertificates, &desc.Certificate{
+					Id:      certificate.Id,
+					UserId:  certificate.UserId,
+					Created: timestamppb.New(certificate.Created),
+					Link:    certificate.Link,
+				})
+			}
+
+			req = &desc.MultiCreateCertificatesV1Request{
+				Certificates: multiCertificates,
+			}
+
+			rows1 := sqlmock.NewRows([]string{"id"}).
+				AddRow(1).
+				AddRow(2)
+			mock.ExpectQuery("INSERT INTO "+tableName).
+				WithArgs(
+					multiCertificates[0].UserId, multiCertificates[0].Created.AsTime(), multiCertificates[0].Link,
+					multiCertificates[1].UserId, multiCertificates[1].Created.AsTime(), multiCertificates[1].Link).
+				WillReturnRows(rows1)
+
+			rows2 := sqlmock.NewRows([]string{"id"}).
+				AddRow(3).
+				AddRow(4)
+			mock.ExpectQuery("INSERT INTO "+tableName).
+				WithArgs(
+					multiCertificates[2].UserId, multiCertificates[2].Created.AsTime(), multiCertificates[2].Link,
+					multiCertificates[3].UserId, multiCertificates[3].Created.AsTime(), multiCertificates[3].Link).
+				WillReturnRows(rows2)
+
+		})
+
+		It("Test create certificate", func() {
+			grpc = api.NewOcpCertificateApi(r, p, batchSize)
+			Expect(grpc).ShouldNot(BeNil())
+			response, err := grpc.MultiCreateCertificatesV1(ctx, req)
+			Expect(err).Should(BeNil())
+			Expect(len(response.CertificateIds)).Should(BeEquivalentTo(len(certificates)))
+		})
 	})
 
 	Context("Test CreateCertificateV1", func() {
@@ -79,7 +132,7 @@ var _ = Describe("Api", func() {
 		})
 
 		It("Test create certificate", func() {
-			grpc = api.NewOcpCertificateApi(r)
+			grpc = api.NewOcpCertificateApi(r, p, batchSize)
 			Expect(grpc).ShouldNot(BeNil())
 			response, err := grpc.CreateCertificateV1(ctx, req)
 			Expect(err).Should(BeNil())
@@ -108,7 +161,7 @@ var _ = Describe("Api", func() {
 		})
 
 		It("Test Get certificate", func() {
-			grpc = api.NewOcpCertificateApi(r)
+			grpc = api.NewOcpCertificateApi(r, p, batchSize)
 			Expect(grpc).ShouldNot(BeNil())
 			Expect(err).Should(BeNil())
 
@@ -146,7 +199,7 @@ var _ = Describe("Api", func() {
 		})
 
 		It("Test update certificate", func() {
-			grpc = api.NewOcpCertificateApi(r)
+			grpc = api.NewOcpCertificateApi(r, p, batchSize)
 			Expect(grpc).ShouldNot(BeNil())
 			Expect(err).Should(BeNil())
 
@@ -177,7 +230,7 @@ var _ = Describe("Api", func() {
 		})
 
 		It("Test get list certificates", func() {
-			grpc = api.NewOcpCertificateApi(r)
+			grpc = api.NewOcpCertificateApi(r, p, batchSize)
 			Expect(grpc).ShouldNot(BeNil())
 			Expect(err).Should(BeNil())
 
@@ -208,7 +261,7 @@ var _ = Describe("Api", func() {
 		})
 
 		It("Test remove certificate", func() {
-			grpc = api.NewOcpCertificateApi(r)
+			grpc = api.NewOcpCertificateApi(r, p, batchSize)
 			Expect(grpc).ShouldNot(BeNil())
 			Expect(err).Should(BeNil())
 

@@ -2,7 +2,7 @@
 
 OCP Certificate Api - service for work and management of the certificate platform.
 
-###The service supports management methods:
+### The service supports management methods:
 
 | Field | Type | Description |
 | ------ | ------ | ------ |
@@ -11,7 +11,7 @@ OCP Certificate Api - service for work and management of the certificate platfor
 | Created | Timestamp | Certificate creation time |
 | Link | String | Link to certificate |
 
-###To start and build the service, you need to do the following
+### To start and build the service, you need to do the following
 
 #### 1 Step [Clone]
 - git clone https://github.com/ozoncp/ocp-certificate-api.git
@@ -32,18 +32,38 @@ OCP Certificate Api - service for work and management of the certificate platfor
 ```sh 
     make migrate
 ```
-###OR
+### OR
 #### All steps [Build+Deploy+Run+Migrate]
 ```sh 
     make deploy
 ```
 -----
-##Stop container
+### Stop container
 ```sh 
     make stop
 ```
-##Remove containers and images
+### Remove containers and images
 ```sh 
     docker rm -vf $(docker ps -a -q)
     docker rmi -f $(docker images -a -q)
 ```
+
+-----
+
+## Services:
+### [Swagger UI](http://localhost:8080)
+- http://localhost:8080
+### [REST](http://localhost:8081)
+- http://localhost:8081/v1/{methods}
+### [gRPC](http://localhost:8082)
+- http://localhost:8082
+### [Prometheus](http://localhost:9090)
+- http://localhost:9090
+### [Metrics](http://localhost:9100/metrics)
+- http://localhost:9100/metrics
+### [Jaeger UI](http://localhost:16686)
+- http://localhost:16686
+### [Kafka](http://localhost:9094)
+- http://localhost:9094
+### [Zookeeper](http://localhost:2181)
+- http://localhost:2181

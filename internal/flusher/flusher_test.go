@@ -45,7 +45,7 @@ var _ = Describe("Flusher", func() {
 	Context("Save all in repository", func() {
 		chunkSize := 2
 		BeforeEach(func() {
-			mockRepo.EXPECT().AddCertificates(ctx, gomock.Any()).Return(nil).MinTimes(1)
+			mockRepo.EXPECT().MultiCreateCertificates(ctx, gomock.Any()).Return([]uint64{4}, nil).MinTimes(1)
 		})
 
 		It("", func() {
@@ -58,7 +58,7 @@ var _ = Describe("Flusher", func() {
 	Context("Error when saving in repository", func() {
 		chunkSize := 2
 		BeforeEach(func() {
-			mockRepo.EXPECT().AddCertificates(ctx, gomock.Any()).Return(mockError).MinTimes(1)
+			mockRepo.EXPECT().MultiCreateCertificates(ctx, gomock.Any()).Return(nil, mockError).MinTimes(1)
 		})
 
 		It("", func() {
@@ -73,8 +73,8 @@ var _ = Describe("Flusher", func() {
 		chunkSize := 2
 		BeforeEach(func() {
 			gomock.InOrder(
-				mockRepo.EXPECT().AddCertificates(ctx, gomock.Any()).Return(nil),
-				mockRepo.EXPECT().AddCertificates(ctx, gomock.Any()).Return(mockError),
+				mockRepo.EXPECT().MultiCreateCertificates(ctx, gomock.Any()).Return([]uint64{4}, nil),
+				mockRepo.EXPECT().MultiCreateCertificates(ctx, gomock.Any()).Return(nil, mockError),
 			)
 		})
 

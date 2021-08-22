@@ -11,43 +11,7 @@
     "application/json"
   ],
   "paths": {
-    "/v1/certificates": {
-      "get": {
-        "operationId": "OcpCertificateApi_ListCertificateV1",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/apiListCertificateV1Response"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/runtimeError"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "type": "string",
-            "format": "uint64"
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "required": false,
-            "type": "string",
-            "format": "uint64"
-          }
-        ],
-        "tags": [
-          "OcpCertificateApi"
-        ]
-      },
+    "/v1/certificate": {
       "post": {
         "operationId": "OcpCertificateApi_CreateCertificateV1",
         "responses": {
@@ -109,7 +73,7 @@
         ]
       }
     },
-    "/v1/certificates/{certificate_id}": {
+    "/v1/certificate/{certificate_id}": {
       "get": {
         "operationId": "OcpCertificateApi_GetCertificateV1",
         "responses": {
@@ -162,6 +126,74 @@
             "required": true,
             "type": "string",
             "format": "uint64"
+          }
+        ],
+        "tags": [
+          "OcpCertificateApi"
+        ]
+      }
+    },
+    "/v1/certificates": {
+      "get": {
+        "operationId": "OcpCertificateApi_ListCertificateV1",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiListCertificateV1Response"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "uint64"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "uint64"
+          }
+        ],
+        "tags": [
+          "OcpCertificateApi"
+        ]
+      },
+      "post": {
+        "operationId": "OcpCertificateApi_MultiCreateCertificatesV1",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiMultiCreateCertificatesV1Response"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiMultiCreateCertificatesV1Request"
+            }
           }
         ],
         "tags": [
@@ -224,6 +256,30 @@
           "type": "array",
           "items": {
             "$ref": "#/definitions/apiCertificate"
+          }
+        }
+      }
+    },
+    "apiMultiCreateCertificatesV1Request": {
+      "type": "object",
+      "properties": {
+        "certificates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiCertificate"
+          }
+        }
+      },
+      "title": "Multi create"
+    },
+    "apiMultiCreateCertificatesV1Response": {
+      "type": "object",
+      "properties": {
+        "certificate_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uint64"
           }
         }
       }

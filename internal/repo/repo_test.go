@@ -51,20 +51,26 @@ var _ = Describe("Repo", func() {
 		Expect(err).Should(BeNil())
 	})
 
-	Context("Test AddCertificates", func() {
+	Context("Test MultiCreateCertificates", func() {
 		BeforeEach(func() {
-			mock.ExpectExec("INSERT INTO "+tableName).
+			rows := sqlmock.NewRows([]string{"id"}).
+				AddRow(1).
+				AddRow(2).
+				AddRow(3).
+				AddRow(4)
+			mock.ExpectQuery("INSERT INTO "+tableName).
 				WithArgs(
 					certificates[0].UserId, certificates[0].Created, certificates[0].Link,
 					certificates[1].UserId, certificates[1].Created, certificates[1].Link,
 					certificates[2].UserId, certificates[2].Created, certificates[2].Link,
 					certificates[3].UserId, certificates[3].Created, certificates[3].Link,
-				).WillReturnResult(sqlmock.NewResult(1, 1))
+				).WillReturnRows(rows)
 		})
 
 		It("Test add array certificates", func() {
-			err := r.AddCertificates(ctx, certificates)
+			certIds, err := r.MultiCreateCertificates(ctx, certificates)
 			Expect(err).Should(BeNil())
+			Expect(len(certIds)).Should(BeEquivalentTo(len(certificates)))
 		})
 	})
 
@@ -136,6 +142,30 @@ var _ = Describe("Repo", func() {
 			deleted, err := r.RemoveCertificate(ctx, certificates[3].Id)
 			Expect(err).Should(BeNil())
 			Expect(deleted).Should(BeEquivalentTo(true))
+		})
+	})
+
+	Context("Test ListCertificates", func() {
+		var limit uint64 = 4
+		var offset uint64 = 0
+
+		BeforeEach(func() {
+			rows := sqlmock.NewRows([]string{"id", "user_id", "created", "link"}).
+				AddRow(certificates[0].Id, certificates[0].UserId, certificates[0].Created, certificates[0].Link).
+				AddRow(certificates[1].Id, certificates[1].UserId, certificates[1].Created, certificates[1].Link).
+				AddRow(certificates[2].Id, certificates[2].UserId, certificates[2].Created, certificates[2].Link).
+				AddRow(certificates[3].Id, certificates[3].UserId, certificates[3].Created, certificates[3].Link)
+			mock.ExpectQuery("SELECT id, user_id, created, link FROM " + tableName + " LIMIT 4 OFFSET 0").
+				WillReturnRows(rows)
+		})
+
+		It("Test get list certificates", func() {
+			certificate, err := r.ListCertificates(ctx, limit, offset)
+			Expect(err).Should(BeNil())
+			Expect(certificate[1].Id).Should(BeEquivalentTo(certificates[1].Id))
+			Expect(certificate[1].UserId).Should(BeEquivalentTo(certificates[1].UserId))
+			Expect(certificate[1].Created).Should(BeEquivalentTo(certificates[1].Created))
+			Expect(certificate[1].Link).Should(BeEquivalentTo(certificates[1].Link))
 		})
 	})
 })
