@@ -11,17 +11,17 @@ import (
 	"github.com/ozoncp/ocp-certificate-api/internal/repo"
 	desc "github.com/ozoncp/ocp-certificate-api/pkg/ocp-certificate-api"
 	log "github.com/rs/zerolog/log"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
-func runGrpc() error {
-	listen, err := net.Listen("tcp", config.GetConfigInstance().Grpc.Address)
-	if err != nil {
-		log.Fatal().Msgf("failed to listen: %v", err)
-	}
-
+// buildDB - init db (postgres)
+func buildDB() *sqlx.DB {
 	dataSourceName := fmt.Sprintf("host=%v port=%v user=%v password=%v dbname=%v sslmode=%v",
 		config.GetConfigInstance().Database.Host,
 		config.GetConfigInstance().Database.Port,
@@ -33,58 +33,101 @@ func runGrpc() error {
 	db, err := sqlx.Connect(config.GetConfigInstance().Database.Driver, dataSourceName)
 	if err != nil {
 		log.Error().Err(err).Msgf("failed to create connect to database")
-		return err
 	}
-
-	defer db.Close()
 
 	if err = db.Ping(); err != nil {
 		log.Error().Err(err).Msgf("failed to ping to database")
-		return err
+	}
+
+	return db
+}
+
+// grpcServer - grpc server
+func grpcServer(db *sqlx.DB) (*grpc.Server, net.Listener) {
+	listen, err := net.Listen("tcp", config.GetConfigInstance().Grpc.Address)
+	if err != nil {
+		log.Fatal().Msgf("failed to listen: %v", err)
 	}
 
 	grpcServer := grpc.NewServer()
 	newRepo := repo.NewRepo(db)
 	desc.RegisterOcpCertificateApiServer(grpcServer, api.NewOcpCertificateApi(newRepo))
 
-	if err = grpcServer.Serve(listen); err != nil {
-		log.Fatal().Msgf("failed to serve: %v", err)
-	}
-
-	return nil
+	return grpcServer, listen
 }
 
-func runJson() {
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
+// restServer - rest server for send json
+func restServer(ctx context.Context) (*http.Server, error) {
 	mux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithInsecure()}
-
 	err := desc.RegisterOcpCertificateApiHandlerFromEndpoint(ctx, mux, config.GetConfigInstance().Grpc.Address, opts)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	err = http.ListenAndServe(config.GetConfigInstance().Json.Address, mux)
-	if err != nil {
-		panic(err)
+	srv := &http.Server{
+		Addr:    config.GetConfigInstance().Json.Address,
+		Handler: mux,
 	}
+
+	log.Info().Msg("Rest server started")
+	return srv, nil
 }
 
 func main() {
+	// Read config
 	err := config.ReadConfigYML()
 	if err != nil {
 		log.Fatal().Msgf("failed read and init configuration file: %v", err)
 		return
 	}
 
-	go runJson()
+	// Init channel and register notify
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+	ctx, cancel := context.WithCancel(context.Background())
+	var grp errgroup.Group
 
-	if err = runGrpc(); err != nil {
-		log.Fatal().Msgf("failed to start gRPC server: %v", err)
+	// Build DB and after work close
+	db := buildDB()
+	defer db.Close()
+
+	// Rest server
+	restServer, err := restServer(ctx)
+	if err != nil {
+		log.Fatal().Msgf("failed start rest server: %v", err)
 	}
 
-	log.Info().Msgf("run success")
+	// Grpc server
+	grpcServer, listen := grpcServer(db)
+
+	// Rest server running
+	grp.Go(func() error {
+		return restServer.ListenAndServe()
+	})
+
+	// gRPC server running
+	grp.Go(func() error {
+		return grpcServer.Serve(listen)
+	})
+
+	// Signal stopping servers
+
+	oscall := <-c
+	log.Info().Msgf("system call:%+v", oscall)
+
+	if err = restServer.Shutdown(ctx); err != nil {
+		log.Printf("shutdown error: %v\n", err)
+	}
+	grpcServer.GracefulStop()
+
+	log.Info().Msg("servers stopped")
+	cancel()
+
+	// Handle sync group
+	if err = grp.Wait(); err != http.ErrServerClosed {
+		log.Fatal().Msgf("server shutdown failed: %v", err)
+	}
+
+	log.Info().Msg("servers correctly completed its work")
 }
