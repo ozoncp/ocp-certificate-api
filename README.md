@@ -65,5 +65,7 @@ OCP Certificate Api - service for work and management of the certificate platfor
 - http://localhost:16686
 ### [Kafka](http://localhost:9094)
 - http://localhost:9094
+### [Kafka UI](http://localhost:9000)
+- http://localhost:9000
 ### [Zookeeper](http://localhost:2181)
 - http://localhost:2181

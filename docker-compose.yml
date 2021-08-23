@@ -60,6 +60,19 @@ services:
     networks:
       - ocpca
 
+  kafka-ui:
+    image: obsidiandynamics/kafdrop
+    restart: unless-stopped
+    depends_on:
+      - kafka
+    ports:
+      - 9000:9000
+    environment:
+      KAFKA_BROKERCONNECT: "kafka:9092"
+      JVM_OPTS: "-Xms16M -Xmx48M -Xss180K -XX:-TieredCompilation -XX:+UseStringDeduplication -noverify"
+    networks:
+      - ocpca
+
   swagger-ui:
     image: swaggerapi/swagger-ui
     ports:
