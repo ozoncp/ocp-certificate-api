@@ -10,13 +10,12 @@ import (
 
 // Producer - an interface for send event messages
 type Producer interface {
-	Send(message Message)
+	Send(message Message) error
 }
 
 type producer struct {
-	prod    sarama.SyncProducer
-	topic   string
-	message chan Message
+	prod  sarama.SyncProducer
+	topic string
 }
 
 // NewProducer - creates a new instance of Producer
@@ -32,17 +31,16 @@ func NewProducer() *producer {
 	}
 
 	return &producer{
-		prod:    syncProducer,
-		topic:   cfg.GetConfigInstance().Kafka.Topic,
-		message: make(chan Message),
+		prod:  syncProducer,
+		topic: cfg.GetConfigInstance().Kafka.Topic,
 	}
 }
 
-func (p *producer) Send(message Message) {
+func (p *producer) Send(message Message) error {
 	bytes, err := json.Marshal(message)
 	if err != nil {
 		log.Err(err).Msg("failed marshaling message to json:")
-		return
+		return err
 	}
 
 	msg := &sarama.ProducerMessage{
@@ -54,7 +52,5 @@ func (p *producer) Send(message Message) {
 	}
 
 	_, _, err = p.prod.SendMessage(msg)
-	if err != nil {
-		log.Error().Msgf("failed send message kafka: %v", err)
-	}
+	return err
 }

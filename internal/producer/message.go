@@ -1,7 +1,5 @@
 package producer
 
-import "time"
-
 type ActionType int
 
 const (
@@ -13,25 +11,21 @@ const (
 // Message - struct to build messages
 type Message struct {
 	Type ActionType
-	Body BodyMessage
+	Body EventMessage
 }
 
-// BodyMessage - struct for build broker messages
-type BodyMessage struct {
+// EventMessage - struct for build broker messages
+type EventMessage struct {
 	Action    string
 	Id        uint64
 	Timestamp int64
 }
 
 // CreateMessage - build messages and send to kafka
-func CreateMessage(actionType ActionType, id uint64, time time.Time) Message {
+func CreateMessage(actionType ActionType, eventMessage EventMessage) Message {
 	return Message{
 		Type: actionType,
-		Body: BodyMessage{
-			Action:    actionType.String(),
-			Id:        id,
-			Timestamp: time.Unix(),
-		},
+		Body: eventMessage,
 	}
 }
 

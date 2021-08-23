@@ -15,8 +15,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"reflect"
 	"time"
+	"unsafe"
 )
 
 type api struct {
@@ -70,8 +70,7 @@ func (a *api) MultiCreateCertificatesV1(
 		}
 
 		childSpan := tracer.StartSpan(
-			fmt.Sprintf("Size of data %d bytes",
-				uintptr(len(certBulks[i]))*reflect.TypeOf(certBulks[i]).Elem().Size()),
+			fmt.Sprintf("Size of data %d bytes", unsafe.Sizeof(certBulks[i])),
 			opentracing.ChildOf(span.Context()),
 		)
 		childSpan.Finish()
@@ -113,7 +112,15 @@ func (a *api) CreateCertificateV1(
 
 	span.SetTag("id", certificate.Id)
 	metrics.CreateCounterInc()
-	a.prod.Send(producer.CreateMessage(producer.Create, certificate.Id, time.Now()))
+	err = a.prod.Send(producer.CreateMessage(producer.Create,
+		producer.EventMessage{
+			Id:        certificate.Id,
+			Action:    producer.Create.String(),
+			Timestamp: time.Now().Unix(),
+		}))
+	if err != nil {
+		log.Error().Msgf("failed send message kafka: %v", err)
+	}
 	response := &desc.CreateCertificateV1Response{
 		CertificateId: certificate.Id,
 	}
@@ -232,7 +239,15 @@ func (a *api) UpdateCertificateV1(
 
 	span.SetTag("id", certificate.Id)
 	metrics.UpdateCounterInc()
-	a.prod.Send(producer.CreateMessage(producer.Update, certificate.Id, time.Now()))
+	err = a.prod.Send(producer.CreateMessage(producer.Update,
+		producer.EventMessage{
+			Id:        certificate.Id,
+			Action:    producer.Update.String(),
+			Timestamp: time.Now().Unix(),
+		}))
+	if err != nil {
+		log.Error().Msgf("failed send message kafka: %v", err)
+	}
 	response := &desc.UpdateCertificateV1Response{
 		Updated: updated,
 	}
@@ -265,8 +280,15 @@ func (a *api) RemoveCertificateV1(
 
 	span.SetTag("id", req.CertificateId)
 	metrics.RemoveCounterInc()
-	a.prod.Send(producer.CreateMessage(producer.Remove, req.CertificateId, time.Now()))
-
+	err = a.prod.Send(producer.CreateMessage(producer.Remove,
+		producer.EventMessage{
+			Id:        req.CertificateId,
+			Action:    producer.Remove.String(),
+			Timestamp: time.Now().Unix(),
+		}))
+	if err != nil {
+		log.Error().Msgf("failed send message kafka: %v", err)
+	}
 	response := &desc.RemoveCertificateV1Response{
 		Removed: removed,
 	}
