@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ozoncp/ocp-certificate-api/internal/model"
-	"io"
+	"io/ioutil"
 	"log"
 	"os"
 )
@@ -68,7 +68,7 @@ func ReadFileByCount(filePath string, count int) {
 			}
 		}()
 
-		data, err := io.ReadAll(file)
+		data, err := ioutil.ReadAll(file)
 		if err != nil {
 			return nil, err
 		}

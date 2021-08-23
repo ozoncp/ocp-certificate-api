@@ -33,7 +33,7 @@ func (f *flusher) Flush(ctx context.Context, certificates []model.Certificate) [
 	splitsCertificates := utils.SplitToBulks(certificates, f.chunkSize)
 
 	for i, splitsCertificate := range splitsCertificates {
-		if err := f.entityRepo.AddCertificates(ctx, splitsCertificate); err != nil {
+		if _, err := f.entityRepo.MultiCreateCertificates(ctx, splitsCertificate); err != nil {
 			return certificates[i*f.chunkSize:]
 		}
 	}

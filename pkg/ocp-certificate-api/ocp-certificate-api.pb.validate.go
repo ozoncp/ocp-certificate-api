@@ -124,6 +124,171 @@ var _ interface {
 	ErrorName() string
 } = CertificateValidationError{}
 
+// Validate checks the field values on MultiCreateCertificatesV1Request with
+// the rules defined in the proto definition for this message. If any rules
+// are violated, an error is returned.
+func (m *MultiCreateCertificatesV1Request) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if len(m.GetCertificates()) < 1 {
+		return MultiCreateCertificatesV1RequestValidationError{
+			field:  "Certificates",
+			reason: "value must contain at least 1 item(s)",
+		}
+	}
+
+	for idx, item := range m.GetCertificates() {
+		_, _ = idx, item
+
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return MultiCreateCertificatesV1RequestValidationError{
+					field:  fmt.Sprintf("Certificates[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	return nil
+}
+
+// MultiCreateCertificatesV1RequestValidationError is the validation error
+// returned by MultiCreateCertificatesV1Request.Validate if the designated
+// constraints aren't met.
+type MultiCreateCertificatesV1RequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e MultiCreateCertificatesV1RequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e MultiCreateCertificatesV1RequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e MultiCreateCertificatesV1RequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e MultiCreateCertificatesV1RequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e MultiCreateCertificatesV1RequestValidationError) ErrorName() string {
+	return "MultiCreateCertificatesV1RequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e MultiCreateCertificatesV1RequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sMultiCreateCertificatesV1Request.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = MultiCreateCertificatesV1RequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = MultiCreateCertificatesV1RequestValidationError{}
+
+// Validate checks the field values on MultiCreateCertificatesV1Response with
+// the rules defined in the proto definition for this message. If any rules
+// are violated, an error is returned.
+func (m *MultiCreateCertificatesV1Response) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if len(m.GetCertificateIds()) < 1 {
+		return MultiCreateCertificatesV1ResponseValidationError{
+			field:  "CertificateIds",
+			reason: "value must contain at least 1 item(s)",
+		}
+	}
+
+	return nil
+}
+
+// MultiCreateCertificatesV1ResponseValidationError is the validation error
+// returned by MultiCreateCertificatesV1Response.Validate if the designated
+// constraints aren't met.
+type MultiCreateCertificatesV1ResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e MultiCreateCertificatesV1ResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e MultiCreateCertificatesV1ResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e MultiCreateCertificatesV1ResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e MultiCreateCertificatesV1ResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e MultiCreateCertificatesV1ResponseValidationError) ErrorName() string {
+	return "MultiCreateCertificatesV1ResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e MultiCreateCertificatesV1ResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sMultiCreateCertificatesV1Response.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = MultiCreateCertificatesV1ResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = MultiCreateCertificatesV1ResponseValidationError{}
+
 // Validate checks the field values on CreateCertificateV1Request with the
 // rules defined in the proto definition for this message. If any rules are
 // violated, an error is returned.

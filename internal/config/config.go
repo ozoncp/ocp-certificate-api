@@ -16,7 +16,7 @@ func GetConfigInstance() Config {
 	return Config{}
 }
 
-// Database - сontains all parameters database connection
+// Database - contains all parameters database connection
 type Database struct {
 	Host     string `yaml:"host"`
 	Port     string `yaml:"port"`
@@ -27,29 +27,51 @@ type Database struct {
 	Driver   string `yaml:"driver"`
 }
 
-// Grpc - сontains parameter address grpc
+// Grpc - contains parameter address grpc
 type Grpc struct {
 	Address string `yaml:"address"`
 }
 
-// Json - сontains parameter rest json connection
-type Json struct {
+// Rest - contains parameter rest json connection
+type Rest struct {
 	Address string `yaml:"address"`
 }
 
-// Project - сontains all parameters project information
+// Project - contains all parameters project information
 type Project struct {
 	Name    string `yaml:"name"`
 	Author  string `yaml:"author"`
 	Version string `yaml:"version"`
 }
 
-// Config - сontains all configuration parameters
+// Prometheus - contains all parameters metrics information
+type Prometheus struct {
+	Uri  string `yaml:"uri"`
+	Port string `yaml:"port"`
+}
+
+// Jaeger - contains all parameters metrics information
+type Jaeger struct {
+	Host string `yaml:"host"`
+	Port string `yaml:"port"`
+}
+
+// Kafka - contains all parameters kafka information
+type Kafka struct {
+	Topic   string   `yaml:"topic"`
+	Brokers []string `yaml:"brokers"`
+}
+
+// Config - contains all configuration parameters
 type Config struct {
-	Project  Project  `yaml:"project"`
-	Grpc     Grpc     `yaml:"grpc"`
-	Json     Json     `yaml:"json"`
-	Database Database `yaml:"database"`
+	Project    Project    `yaml:"project"`
+	Grpc       Grpc       `yaml:"grpc"`
+	Rest       Rest       `yaml:"rest"`
+	Database   Database   `yaml:"database"`
+	BatchSize  int        `yaml:"batchSize"`
+	Prometheus Prometheus `yaml:"prometheus"`
+	Jaeger     Jaeger     `yaml:"jaeger"`
+	Kafka      Kafka      `yaml:"kafka"`
 }
 
 // ReadConfigYML - read configurations from file and init instance Config

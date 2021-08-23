@@ -2,25 +2,85 @@ package api
 
 import (
 	"context"
+	"fmt"
+	"github.com/opentracing/opentracing-go"
+	cfg "github.com/ozoncp/ocp-certificate-api/internal/config"
+	"github.com/ozoncp/ocp-certificate-api/internal/metrics"
 	"github.com/ozoncp/ocp-certificate-api/internal/model"
+	"github.com/ozoncp/ocp-certificate-api/internal/producer"
 	"github.com/ozoncp/ocp-certificate-api/internal/repo"
+	"github.com/ozoncp/ocp-certificate-api/internal/utils"
 	desc "github.com/ozoncp/ocp-certificate-api/pkg/ocp-certificate-api"
 	log "github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"time"
+	"unsafe"
 )
 
 type api struct {
 	desc.UnimplementedOcpCertificateApiServer
 	repo repo.Repo
+	prod producer.Producer
 }
 
 // NewOcpCertificateApi constructor
-func NewOcpCertificateApi(repo repo.Repo) desc.OcpCertificateApiServer {
+func NewOcpCertificateApi(repo repo.Repo, prod producer.Producer) desc.OcpCertificateApiServer {
 	return &api{
 		repo: repo,
+		prod: prod,
 	}
+}
+
+// MultiCreateCertificatesV1 request for create new certificates
+func (a *api) MultiCreateCertificatesV1(
+	ctx context.Context,
+	req *desc.MultiCreateCertificatesV1Request,
+) (*desc.MultiCreateCertificatesV1Response, error) {
+	if err := req.Validate(); err != nil {
+		log.Error().Err(err).Msg("Invalid arguments was received when creating a multi certificates")
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	tracer := opentracing.GlobalTracer()
+	span := tracer.StartSpan("MultiCreateCertificatesV1")
+	defer span.Finish()
+
+	var certificates []model.Certificate
+	for _, certificate := range req.Certificates {
+		certificates = append(certificates, model.Certificate{
+			Id:      certificate.Id,
+			UserId:  certificate.UserId,
+			Created: certificate.Created.AsTime(),
+			Link:    certificate.Link,
+		})
+	}
+
+	batchSize := cfg.GetConfigInstance().BatchSize
+	certBulks := utils.SplitToBulks(certificates, batchSize)
+	response := &desc.MultiCreateCertificatesV1Response{}
+	for i := 0; i < len(certBulks); i++ {
+		certIds, err := a.repo.MultiCreateCertificates(ctx, certBulks[i])
+		if err != nil {
+			childSpan := tracer.StartSpan("Size of data 0 bytes", opentracing.ChildOf(span.Context()))
+			childSpan.Finish()
+			log.Error().Err(err).Msgf("error when try multi create certificates with butchSize %d", batchSize)
+			return response, status.Error(codes.Internal, err.Error())
+		}
+
+		childSpan := tracer.StartSpan(
+			fmt.Sprintf("Size of data %d bytes", unsafe.Sizeof(certBulks[i])),
+			opentracing.ChildOf(span.Context()),
+		)
+		childSpan.Finish()
+
+		response.CertificateIds = append(response.CertificateIds, certIds...)
+	}
+
+	log.Info().Msg("multi creating of the certificates was successful")
+
+	return response, nil
 }
 
 // CreateCertificateV1 request for create new certificate
@@ -32,6 +92,10 @@ func (a *api) CreateCertificateV1(
 		log.Error().Err(err).Msg("Invalid arguments was received when creating a certificate")
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
+
+	tracer := opentracing.GlobalTracer()
+	span := tracer.StartSpan("CreateCertificateV1")
+	defer span.Finish()
 
 	certificate := &model.Certificate{
 		UserId:  req.Certificate.UserId,
@@ -46,6 +110,17 @@ func (a *api) CreateCertificateV1(
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
+	span.SetTag("id", certificate.Id)
+	metrics.CreateCounterInc()
+	err = a.prod.Send(producer.CreateMessage(producer.Create,
+		producer.EventMessage{
+			Id:        certificate.Id,
+			Action:    producer.Create.String(),
+			Timestamp: time.Now().Unix(),
+		}))
+	if err != nil {
+		log.Error().Msgf("failed send message kafka: %v", err)
+	}
 	response := &desc.CreateCertificateV1Response{
 		CertificateId: certificate.Id,
 	}
@@ -65,12 +140,17 @@ func (a *api) GetCertificateV1(
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
+	tracer := opentracing.GlobalTracer()
+	span := tracer.StartSpan("GetCertificateV1Request")
+	defer span.Finish()
+
 	certificate, err := a.repo.GetCertificate(ctx, req.CertificateId)
 	if err != nil {
 		log.Error().Err(err).Msg("error get the certificate")
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
+	span.SetTag("id", certificate.Id)
 	response := &desc.GetCertificateV1Response{
 		Certificate: &desc.Certificate{
 			Id:      certificate.Id,
@@ -96,6 +176,10 @@ func (a *api) ListCertificateV1(
 		return nil, status.Error(codes.Internal, "failed get list certificates")
 	}
 
+	tracer := opentracing.GlobalTracer()
+	span := tracer.StartSpan("ListCertificateV1Request")
+	defer span.Finish()
+
 	log.Info().Msgf("found count certificates: %d", len(listCertificates))
 
 	certificates := make([]*desc.Certificate, 0, len(listCertificates))
@@ -109,6 +193,12 @@ func (a *api) ListCertificateV1(
 
 		certificates = append(certificates, cert)
 	}
+
+	childSpan := tracer.StartSpan(
+		fmt.Sprintf("Found count cerificates: %d", len(listCertificates)),
+		opentracing.ChildOf(span.Context()),
+	)
+	defer childSpan.Finish()
 
 	response := &desc.ListCertificateV1Response{
 		Certificates: certificates,
@@ -129,6 +219,10 @@ func (a *api) UpdateCertificateV1(
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
+	tracer := opentracing.GlobalTracer()
+	span := tracer.StartSpan("UpdateCertificateV1Request")
+	defer span.Finish()
+
 	certificate := model.Certificate{
 		Id:      req.Certificate.Id,
 		UserId:  req.Certificate.UserId,
@@ -143,6 +237,17 @@ func (a *api) UpdateCertificateV1(
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
+	span.SetTag("id", certificate.Id)
+	metrics.UpdateCounterInc()
+	err = a.prod.Send(producer.CreateMessage(producer.Update,
+		producer.EventMessage{
+			Id:        certificate.Id,
+			Action:    producer.Update.String(),
+			Timestamp: time.Now().Unix(),
+		}))
+	if err != nil {
+		log.Error().Msgf("failed send message kafka: %v", err)
+	}
 	response := &desc.UpdateCertificateV1Response{
 		Updated: updated,
 	}
@@ -162,6 +267,10 @@ func (a *api) RemoveCertificateV1(
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
+	tracer := opentracing.GlobalTracer()
+	span := tracer.StartSpan("RemoveCertificateV1Request")
+	defer span.Finish()
+
 	removed, err := a.repo.RemoveCertificate(ctx, req.CertificateId)
 
 	if err != nil {
@@ -169,6 +278,17 @@ func (a *api) RemoveCertificateV1(
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
+	span.SetTag("id", req.CertificateId)
+	metrics.RemoveCounterInc()
+	err = a.prod.Send(producer.CreateMessage(producer.Remove,
+		producer.EventMessage{
+			Id:        req.CertificateId,
+			Action:    producer.Remove.String(),
+			Timestamp: time.Now().Unix(),
+		}))
+	if err != nil {
+		log.Error().Msgf("failed send message kafka: %v", err)
+	}
 	response := &desc.RemoveCertificateV1Response{
 		Removed: removed,
 	}
