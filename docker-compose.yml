@@ -26,7 +26,7 @@ services:
     links:
       - postgres
     ports:
-      - 8081:8081 # json
+      - 8081:8081 # rest
       - 8082:8082 # grpc
       - 9100:9100 # prometheus
 

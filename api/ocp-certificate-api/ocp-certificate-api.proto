@@ -11,21 +11,21 @@ package ocp.certificate.api;
 service OcpCertificateApi {
   rpc MultiCreateCertificatesV1(MultiCreateCertificatesV1Request) returns (MultiCreateCertificatesV1Response) {
     option (google.api.http) = {
-      post: "/v1/certificates"
+      post: "/v1/certificates/list"
       body: "*"
     };
   }
 
   rpc CreateCertificateV1(CreateCertificateV1Request) returns (CreateCertificateV1Response) {
     option (google.api.http) = {
-      post: "/v1/certificate"
+      post: "/v1/certificates"
       body: "*"
     };
   }
 
   rpc GetCertificateV1(GetCertificateV1Request) returns (GetCertificateV1Response) {
     option (google.api.http) = {
-      get: "/v1/certificate/{certificate_id}"
+      get: "/v1/certificates/{certificate_id}"
     };
   }
 
@@ -37,14 +37,14 @@ service OcpCertificateApi {
 
   rpc UpdateCertificateV1(UpdateCertificateV1Request) returns (UpdateCertificateV1Response) {
     option (google.api.http) = {
-      put: "/v1/certificate"
+      put: "/v1/certificates"
       body: "*"
     };
   }
 
   rpc RemoveCertificateV1(RemoveCertificateV1Request) returns (RemoveCertificateV1Response) {
     option (google.api.http) = {
-      delete: "/v1/certificate/{certificate_id}"
+      delete: "/v1/certificates/{certificate_id}"
     };
   }
 }

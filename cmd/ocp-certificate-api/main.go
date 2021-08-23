@@ -24,8 +24,8 @@ import (
 	"syscall"
 )
 
-// buildDB - init db (postgres)
-func buildDB() *sqlx.DB {
+// initDB - init db (postgres)
+func initDB() *sqlx.DB {
 	dataSourceName := fmt.Sprintf("host=%v port=%v user=%v password=%v dbname=%v sslmode=%v",
 		cfg.GetConfigInstance().Database.Host,
 		cfg.GetConfigInstance().Database.Port,
@@ -53,12 +53,12 @@ func grpcServer(db *sqlx.DB, prod producer.Producer) (*grpc.Server, net.Listener
 		log.Fatal().Msgf("failed to listen: %v", err)
 	}
 
-	grpcServer := grpc.NewServer()
+	gSrv := grpc.NewServer()
 	newRepo := repo.NewRepo(db)
-	desc.RegisterOcpCertificateApiServer(grpcServer, api.NewOcpCertificateApi(newRepo, prod, cfg.GetConfigInstance().BatchSize))
+	desc.RegisterOcpCertificateApiServer(gSrv, api.NewOcpCertificateApi(newRepo, prod))
 
 	log.Info().Msg("gRPC server started")
-	return grpcServer, listen
+	return gSrv, listen
 }
 
 // restServer - rest server for send json
@@ -94,9 +94,8 @@ func metricsServer() (*http.Server, error) {
 }
 
 // kafka - message broker
-func kafka(ctx context.Context) producer.Producer {
+func kafka() producer.Producer {
 	prod := producer.NewProducer()
-	prod.Init(ctx)
 
 	log.Info().Msg("Kafka message broker started and init")
 	return prod
@@ -118,61 +117,66 @@ func main() {
 
 	// Init tracer
 	closer := tracer.InitTracer("ocp-certificate-api")
-	defer closer.Close()
 
-	// Build DB and after work close
-	db := buildDB()
-	defer db.Close()
+	// Init DB and after work close
+	db := initDB()
 
 	// Metrics server
-	metricsServer, err := metricsServer()
+	mSrv, err := metricsServer()
 	if err != nil {
 		log.Fatal().Msgf("failed start metrics server: %v", err)
 	}
 
 	// Rest server
-	restServer, err := restServer(ctx)
+	rSrv, err := restServer(ctx)
 	if err != nil {
 		log.Fatal().Msgf("failed start rest server: %v", err)
 	}
 
 	// kafka message broker
-	prod := kafka(ctx)
+	prod := kafka()
 
 	// Grpc server
-	grpcServer, listen := grpcServer(db, prod)
+	gSrv, listen := grpcServer(db, prod)
 
 	// Rest server running
 	grp.Go(func() error {
-		return restServer.ListenAndServe()
+		return rSrv.ListenAndServe()
 	})
 
 	// gRPC server running
 	grp.Go(func() error {
-		return grpcServer.Serve(listen)
+		return gSrv.Serve(listen)
 	})
 
 	// Metrics register and server running
 	grp.Go(func() error {
 		metrics.RegisterMetrics()
-		return metricsServer.ListenAndServe()
+		return mSrv.ListenAndServe()
 	})
 
 	// Signal stopping servers
 	osSignal := <-c
 	log.Info().Msgf("system syscall:%+v", osSignal)
 
-	if err = metricsServer.Shutdown(ctx); err != nil {
+	if err = mSrv.Shutdown(ctx); err != nil {
 		log.Printf("shutdown error: %v\n", err)
 	}
 
-	if err = restServer.Shutdown(ctx); err != nil {
+	if err = rSrv.Shutdown(ctx); err != nil {
 		log.Printf("shutdown error: %v\n", err)
 	}
 
-	grpcServer.GracefulStop()
+	gSrv.GracefulStop()
 
 	log.Info().Msg("servers stopped")
+
+	closer.Close()
+	log.Info().Msg("tracer stopped")
+
+	db.Close()
+	log.Info().Msg("db stopped")
+
 	cancel()
 
 	// Handle sync group
@@ -180,5 +184,5 @@ func main() {
 		log.Fatal().Msgf("server shutdown failed: %v", err)
 	}
 
-	log.Info().Msg("servers correctly completed its work")
+	log.Info().Msg("services correctly completed its work")
 }

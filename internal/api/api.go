@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/opentracing/opentracing-go"
+	cfg "github.com/ozoncp/ocp-certificate-api/internal/config"
 	"github.com/ozoncp/ocp-certificate-api/internal/metrics"
 	"github.com/ozoncp/ocp-certificate-api/internal/model"
 	"github.com/ozoncp/ocp-certificate-api/internal/producer"
@@ -14,22 +15,21 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"unsafe"
+	"reflect"
+	"time"
 )
 
 type api struct {
 	desc.UnimplementedOcpCertificateApiServer
-	repo      repo.Repo
-	prod      producer.Producer
-	batchSize int
+	repo repo.Repo
+	prod producer.Producer
 }
 
 // NewOcpCertificateApi constructor
-func NewOcpCertificateApi(repo repo.Repo, prod producer.Producer, batchSize int) desc.OcpCertificateApiServer {
+func NewOcpCertificateApi(repo repo.Repo, prod producer.Producer) desc.OcpCertificateApiServer {
 	return &api{
-		repo:      repo,
-		prod:      prod,
-		batchSize: batchSize,
+		repo: repo,
+		prod: prod,
 	}
 }
 
@@ -57,19 +57,21 @@ func (a *api) MultiCreateCertificatesV1(
 		})
 	}
 
-	certBulks := utils.SplitToBulks(certificates, a.batchSize)
+	batchSize := cfg.GetConfigInstance().BatchSize
+	certBulks := utils.SplitToBulks(certificates, batchSize)
 	response := &desc.MultiCreateCertificatesV1Response{}
 	for i := 0; i < len(certBulks); i++ {
 		certIds, err := a.repo.MultiCreateCertificates(ctx, certBulks[i])
 		if err != nil {
 			childSpan := tracer.StartSpan("Size of data 0 bytes", opentracing.ChildOf(span.Context()))
 			childSpan.Finish()
-			log.Error().Err(err).Msgf("error when try multi create certificates with butchSize %d", a.batchSize)
+			log.Error().Err(err).Msgf("error when try multi create certificates with butchSize %d", batchSize)
 			return response, status.Error(codes.Internal, err.Error())
 		}
 
 		childSpan := tracer.StartSpan(
-			fmt.Sprintf("Size of data %d bytes", unsafe.Sizeof(certBulks[i])),
+			fmt.Sprintf("Size of data %d bytes",
+				uintptr(len(certBulks[i]))*reflect.TypeOf(certBulks[i]).Elem().Size()),
 			opentracing.ChildOf(span.Context()),
 		)
 		childSpan.Finish()
@@ -111,7 +113,7 @@ func (a *api) CreateCertificateV1(
 
 	span.SetTag("id", certificate.Id)
 	metrics.CreateCounterInc()
-	a.prod.Send(producer.CreateMessage(producer.Create, certificate.Id))
+	a.prod.Send(producer.CreateMessage(producer.Create, certificate.Id, time.Now()))
 	response := &desc.CreateCertificateV1Response{
 		CertificateId: certificate.Id,
 	}
@@ -230,7 +232,7 @@ func (a *api) UpdateCertificateV1(
 
 	span.SetTag("id", certificate.Id)
 	metrics.UpdateCounterInc()
-	a.prod.Send(producer.CreateMessage(producer.Update, certificate.Id))
+	a.prod.Send(producer.CreateMessage(producer.Update, certificate.Id, time.Now()))
 	response := &desc.UpdateCertificateV1Response{
 		Updated: updated,
 	}
@@ -263,7 +265,8 @@ func (a *api) RemoveCertificateV1(
 
 	span.SetTag("id", req.CertificateId)
 	metrics.RemoveCounterInc()
-	a.prod.Send(producer.CreateMessage(producer.Remove, req.CertificateId))
+	a.prod.Send(producer.CreateMessage(producer.Remove, req.CertificateId, time.Now()))
+
 	response := &desc.RemoveCertificateV1Response{
 		Removed: removed,
 	}
