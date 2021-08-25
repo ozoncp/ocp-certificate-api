@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/Shopify/sarama"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -21,7 +23,9 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
+	"time"
 )
 
 // initDB - init db (postgres)
@@ -47,15 +51,14 @@ func initDB() *sqlx.DB {
 }
 
 // grpcServer - grpc server
-func grpcServer(db *sqlx.DB, prod producer.Producer) (*grpc.Server, net.Listener) {
+func grpcServer(r repo.Repo, m metrics.Metrics, prod producer.Producer, cons producer.Consumer) (*grpc.Server, net.Listener) {
 	listen, err := net.Listen("tcp", cfg.GetConfigInstance().Grpc.Address)
 	if err != nil {
 		log.Fatal().Msgf("failed to listen: %v", err)
 	}
 
 	gSrv := grpc.NewServer()
-	newRepo := repo.NewRepo(db)
-	desc.RegisterOcpCertificateApiServer(gSrv, api.NewOcpCertificateApi(newRepo, prod))
+	desc.RegisterOcpCertificateApiServer(gSrv, api.NewOcpCertificateApi(r, m, prod, cons))
 
 	log.Info().Msg("gRPC server started")
 	return gSrv, listen
@@ -63,12 +66,29 @@ func grpcServer(db *sqlx.DB, prod producer.Producer) (*grpc.Server, net.Listener
 
 // restServer - rest server for send json
 func restServer(ctx context.Context) (*http.Server, error) {
-	mux := runtime.NewServeMux()
+	isReady := &atomic.Value{}
+	isReady.Store(false)
+	go func() {
+		log.Printf("Ready probe is negative by default...")
+		time.Sleep(10 * time.Second)
+		isReady.Store(true)
+		log.Printf("Ready probe is positive.")
+	}()
+
+	serMux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithInsecure()}
-	err := desc.RegisterOcpCertificateApiHandlerFromEndpoint(ctx, mux, cfg.GetConfigInstance().Grpc.Address, opts)
+	err := desc.RegisterOcpCertificateApiHandlerFromEndpoint(ctx, serMux, cfg.GetConfigInstance().Grpc.Address, opts)
 	if err != nil {
 		return nil, err
 	}
+
+	mux := http.NewServeMux()
+	mux.Handle("/", serMux)
+	mux.Handle("/live", http.HandlerFunc(live))
+	mux.Handle("/health", http.HandlerFunc(health))
+	log.Info().Msg("Liveness started")
+	mux.Handle("/ready", ready(isReady))
+	log.Info().Msg("Readiness started")
 
 	srv := &http.Server{
 		Addr:    cfg.GetConfigInstance().Rest.Address,
@@ -77,6 +97,34 @@ func restServer(ctx context.Context) (*http.Server, error) {
 
 	log.Info().Msg("Rest server started")
 	return srv, nil
+}
+
+// live is a simple HTTP handler function which writes a response.
+func live(w http.ResponseWriter, _ *http.Request) {
+	body, err := json.Marshal("This is service live!")
+	if err != nil {
+		log.Error().Err(err).Msgf("Could not encode info data: %v", err)
+		http.Error(w, http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(body)
+}
+
+// health is a liveness probe.
+func health(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
+// ready is a readiness probe.
+func ready(isReady *atomic.Value) http.HandlerFunc {
+	return func(w http.ResponseWriter, _ *http.Request) {
+		if isReady == nil || !isReady.Load().(bool) {
+			http.Error(w, http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}
 }
 
 // metricsServer - metrics server
@@ -94,11 +142,22 @@ func metricsServer() (*http.Server, error) {
 }
 
 // kafka - message broker
-func kafka() producer.Producer {
-	prod := producer.NewProducer()
+func kafka(r repo.Repo, m metrics.Metrics) (producer.Producer, producer.Consumer, error) {
+	config := sarama.NewConfig()
+	config.Producer.RequiredAcks = sarama.WaitForLocal
+	config.Producer.Partitioner = sarama.NewRandomPartitioner
+	config.Producer.Return.Successes = true
+
+	syncProducer, err := sarama.NewSyncProducer(cfg.GetConfigInstance().Kafka.Brokers, config)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create Sarama new sync producer")
+	}
+
+	prod := producer.NewProducer(syncProducer)
+	cons := producer.NewConsumer(r, m)
 
 	log.Info().Msg("Kafka message broker started and init")
-	return prod
+	return prod, cons, nil
 }
 
 func main() {
@@ -120,11 +179,19 @@ func main() {
 
 	// Init DB and after work close
 	db := initDB()
+	newRepo := repo.NewRepo(db)
 
 	// Metrics server
+	m := metrics.NewMetrics()
 	mSrv, err := metricsServer()
 	if err != nil {
 		log.Fatal().Msgf("failed start metrics server: %v", err)
+	}
+
+	// kafka message broker
+	prod, cons, err := kafka(newRepo, m)
+	if err != nil {
+		log.Fatal().Msgf("failed handle kafka consumer: %v", err)
 	}
 
 	// Rest server
@@ -133,11 +200,8 @@ func main() {
 		log.Fatal().Msgf("failed start rest server: %v", err)
 	}
 
-	// kafka message broker
-	prod := kafka()
-
 	// Grpc server
-	gSrv, listen := grpcServer(db, prod)
+	gSrv, listen := grpcServer(newRepo, m, prod, cons)
 
 	// Rest server running
 	grp.Go(func() error {
@@ -151,7 +215,6 @@ func main() {
 
 	// Metrics register and server running
 	grp.Go(func() error {
-		metrics.RegisterMetrics()
 		return mSrv.ListenAndServe()
 	})
 
@@ -168,7 +231,6 @@ func main() {
 	}
 
 	gSrv.GracefulStop()
-
 	log.Info().Msg("servers stopped")
 
 	closer.Close()
@@ -176,6 +238,12 @@ func main() {
 
 	db.Close()
 	log.Info().Msg("db stopped")
+
+	prod.Close()
+	log.Info().Msg("producer kafka stopped")
+
+	cons.Close()
+	log.Info().Msg("consumer kafka stopped")
 
 	cancel()
 

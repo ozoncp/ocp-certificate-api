@@ -41,12 +41,13 @@ service OcpCertificateApi {
       body: "*"
     };
   }
+}
 
-  rpc RemoveCertificateV1(RemoveCertificateV1Request) returns (RemoveCertificateV1Response) {
-    option (google.api.http) = {
-      delete: "/v1/certificates/{certificate_id}"
-    };
-  }
+message NewCertificate {
+  uint64 userId = 2 [(validate.rules).uint64.gt = 0];
+  google.protobuf.Timestamp created = 3;
+  string link = 4;
+  bool isDeleted = 5 [(validate.rules).bool.const = false];
 }
 
 message Certificate {
@@ -54,11 +55,12 @@ message Certificate {
   uint64 userId = 2 [(validate.rules).uint64.gt = 0];
   google.protobuf.Timestamp created = 3;
   string link = 4;
+  bool isDeleted = 5;
 }
 
 // Multi create
 message MultiCreateCertificatesV1Request {
-  repeated Certificate certificates = 1 [(validate.rules).repeated.min_items = 1];
+  repeated NewCertificate certificates = 1 [(validate.rules).repeated.min_items = 1];
 }
 
 message MultiCreateCertificatesV1Response {
@@ -67,7 +69,7 @@ message MultiCreateCertificatesV1Response {
 
 // Create
 message CreateCertificateV1Request {
-  Certificate certificate = 1;
+  NewCertificate certificate = 1;
 }
 
 message CreateCertificateV1Response {
@@ -97,12 +99,4 @@ message UpdateCertificateV1Request {
 }
 message UpdateCertificateV1Response {
   bool updated = 1;
-}
-
-// Delete
-message RemoveCertificateV1Request {
-  uint64 certificate_id = 1 [(validate.rules).uint64.gt = 0];
-}
-message RemoveCertificateV1Response {
-  bool removed = 1;
 }

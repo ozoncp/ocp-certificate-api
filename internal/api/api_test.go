@@ -4,10 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/Shopify/sarama/mocks"
+	"github.com/golang/mock/gomock"
 	"github.com/jmoiron/sqlx"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/ozoncp/ocp-certificate-api/internal/api"
+	mockMetr "github.com/ozoncp/ocp-certificate-api/internal/mocks"
 	"github.com/ozoncp/ocp-certificate-api/internal/model"
 	"github.com/ozoncp/ocp-certificate-api/internal/producer"
 	"github.com/ozoncp/ocp-certificate-api/internal/repo"
@@ -18,7 +21,6 @@ import (
 
 var _ = Describe("Api", func() {
 	const tableName = "certificate"
-	const batchSize = 2
 
 	now := time.Now()
 
@@ -27,11 +29,16 @@ var _ = Describe("Api", func() {
 		sqlxDB *sqlx.DB
 		mock   sqlmock.Sqlmock
 
+		controller   *gomock.Controller
+		m            *mockMetr.MockMetrics
 		ctx          context.Context
 		r            repo.Repo
 		grpc         desc.OcpCertificateApiServer
 		certificates []model.Certificate
-		p            producer.Producer
+		synProdMock  *mocks.SyncProducer
+
+		p producer.Producer
+		s producer.Consumer
 
 		err error
 	)
@@ -44,22 +51,26 @@ var _ = Describe("Api", func() {
 
 		ctx = context.Background()
 		r = repo.NewRepo(sqlxDB)
-		p = producer.NewProducer()
-		p.Init(ctx)
-		grpc = api.NewOcpCertificateApi(r, p, batchSize)
+
+		controller = gomock.NewController(GinkgoT())
+		m = mockMetr.NewMockMetrics(controller)
+		synProdMock = mocks.NewSyncProducer(controller.T, nil)
+
+		p = producer.NewProducer(synProdMock)
+		s = producer.NewConsumer(r, m)
+		grpc = api.NewOcpCertificateApi(r, m, p, s)
 
 		certificates = []model.Certificate{
-			{1.0, 1.0, now, "http://link"},
-			{2.0, 2.0, now, "http://link"},
-			{3.0, 3.0, now, "http://link"},
-			{4.0, 4.0, now, "http://link"},
+			{1.0, 1.0, now, "https://link.ru", false},
+			{2.0, 2.0, now, "https://link.ru", false},
+			{3.0, 3.0, now, "https://link.ru", false},
+			{4.0, 4.0, now, "https://link.ru", false},
 		}
 	})
 
 	AfterEach(func() {
 		mock.ExpectClose()
 		err = db.Close()
-		p.Close()
 		Expect(err).Should(BeNil())
 	})
 
@@ -67,46 +78,28 @@ var _ = Describe("Api", func() {
 		var req *desc.MultiCreateCertificatesV1Request
 
 		BeforeEach(func() {
-			multiCertificates := make([]*desc.Certificate, 0, len(certificates))
+			synProdMock.ExpectSendMessageAndSucceed()
+			m.EXPECT().MultiCreateCounterInc()
+			multiCertificates := make([]*desc.NewCertificate, 0, len(certificates))
 			for _, certificate := range certificates {
-				multiCertificates = append(multiCertificates, &desc.Certificate{
-					Id:      certificate.Id,
-					UserId:  certificate.UserId,
-					Created: timestamppb.New(certificate.Created),
-					Link:    certificate.Link,
+				multiCertificates = append(multiCertificates, &desc.NewCertificate{
+					UserId:    certificate.UserId,
+					Created:   timestamppb.New(certificate.Created),
+					Link:      certificate.Link,
+					IsDeleted: certificate.IsDeleted,
 				})
 			}
 
 			req = &desc.MultiCreateCertificatesV1Request{
 				Certificates: multiCertificates,
 			}
-
-			rows1 := sqlmock.NewRows([]string{"id"}).
-				AddRow(1).
-				AddRow(2)
-			mock.ExpectQuery("INSERT INTO "+tableName).
-				WithArgs(
-					multiCertificates[0].UserId, multiCertificates[0].Created.AsTime(), multiCertificates[0].Link,
-					multiCertificates[1].UserId, multiCertificates[1].Created.AsTime(), multiCertificates[1].Link).
-				WillReturnRows(rows1)
-
-			rows2 := sqlmock.NewRows([]string{"id"}).
-				AddRow(3).
-				AddRow(4)
-			mock.ExpectQuery("INSERT INTO "+tableName).
-				WithArgs(
-					multiCertificates[2].UserId, multiCertificates[2].Created.AsTime(), multiCertificates[2].Link,
-					multiCertificates[3].UserId, multiCertificates[3].Created.AsTime(), multiCertificates[3].Link).
-				WillReturnRows(rows2)
-
 		})
 
 		It("Test create certificate", func() {
-			grpc = api.NewOcpCertificateApi(r, p, batchSize)
+			grpc = api.NewOcpCertificateApi(r, m, p, s)
 			Expect(grpc).ShouldNot(BeNil())
-			response, err := grpc.MultiCreateCertificatesV1(ctx, req)
+			_, err := grpc.MultiCreateCertificatesV1(ctx, req)
 			Expect(err).Should(BeNil())
-			Expect(len(response.CertificateIds)).Should(BeEquivalentTo(len(certificates)))
 		})
 	})
 
@@ -114,25 +107,27 @@ var _ = Describe("Api", func() {
 		var req *desc.CreateCertificateV1Request
 
 		BeforeEach(func() {
+			synProdMock.ExpectSendMessageAndSucceed()
+			m.EXPECT().CreateCounterInc()
 			req = &desc.CreateCertificateV1Request{
-				Certificate: &desc.Certificate{
-					Id:      certificates[0].Id,
-					UserId:  certificates[0].UserId,
-					Created: timestamppb.New(certificates[0].Created),
-					Link:    certificates[0].Link,
+				Certificate: &desc.NewCertificate{
+					UserId:    certificates[0].UserId,
+					Created:   timestamppb.New(certificates[0].Created),
+					Link:      certificates[0].Link,
+					IsDeleted: certificates[0].IsDeleted,
 				},
 			}
 
 			rows := sqlmock.NewRows([]string{"id"}).
 				AddRow(1)
 			mock.ExpectQuery("INSERT INTO "+tableName).
-				WithArgs(req.Certificate.UserId, req.Certificate.Created.AsTime(), req.Certificate.Link).
+				WithArgs(req.Certificate.UserId, req.Certificate.Created.AsTime(), req.Certificate.Link, req.Certificate.IsDeleted).
 				WillReturnRows(rows)
 
 		})
 
 		It("Test create certificate", func() {
-			grpc = api.NewOcpCertificateApi(r, p, batchSize)
+			grpc = api.NewOcpCertificateApi(r, m, p, s)
 			Expect(grpc).ShouldNot(BeNil())
 			response, err := grpc.CreateCertificateV1(ctx, req)
 			Expect(err).Should(BeNil())
@@ -148,20 +143,21 @@ var _ = Describe("Api", func() {
 				CertificateId: certificates[1].Id,
 			}
 
-			rows := sqlmock.NewRows([]string{"id", "user_id", "created", "link"}).
+			rows := sqlmock.NewRows([]string{"id", "user_id", "created", "link", "is_deleted"}).
 				AddRow(
 					certificates[1].Id,
 					certificates[1].UserId,
 					certificates[1].Created,
-					certificates[1].Link)
-			mock.ExpectQuery("SELECT id, user_id, created, link FROM " + tableName + " WHERE").
+					certificates[1].Link,
+					certificates[1].IsDeleted)
+			mock.ExpectQuery("SELECT id, user_id, created, link, is_deleted FROM " + tableName + " WHERE").
 				WithArgs(req.CertificateId).
 				WillReturnRows(rows)
 
 		})
 
 		It("Test Get certificate", func() {
-			grpc = api.NewOcpCertificateApi(r, p, batchSize)
+			grpc = api.NewOcpCertificateApi(r, m, p, s)
 			Expect(grpc).ShouldNot(BeNil())
 			Expect(err).Should(BeNil())
 
@@ -178,6 +174,8 @@ var _ = Describe("Api", func() {
 		var req *desc.UpdateCertificateV1Request
 
 		BeforeEach(func() {
+			synProdMock.ExpectSendMessageAndSucceed()
+			m.EXPECT().UpdateCounterInc()
 			req = &desc.UpdateCertificateV1Request{
 				Certificate: &desc.Certificate{
 					Id:      certificates[3].Id,
@@ -192,6 +190,7 @@ var _ = Describe("Api", func() {
 					req.Certificate.UserId,
 					req.Certificate.Created.AsTime(),
 					req.Certificate.Link,
+					req.Certificate.IsDeleted,
 					req.Certificate.Id,
 				).
 				WillReturnResult(sqlmock.NewResult(1, 1))
@@ -199,7 +198,7 @@ var _ = Describe("Api", func() {
 		})
 
 		It("Test update certificate", func() {
-			grpc = api.NewOcpCertificateApi(r, p, batchSize)
+			grpc = api.NewOcpCertificateApi(r, m, p, s)
 			Expect(grpc).ShouldNot(BeNil())
 			Expect(err).Should(BeNil())
 
@@ -218,19 +217,19 @@ var _ = Describe("Api", func() {
 				Offset: 0,
 			}
 
-			rows := sqlmock.NewRows([]string{"id", "user_id", "created", "link"}).
-				AddRow(certificates[0].Id, certificates[0].UserId, certificates[0].Created, certificates[0].Link).
-				AddRow(certificates[1].Id, certificates[1].UserId, certificates[1].Created, certificates[1].Link).
-				AddRow(certificates[2].Id, certificates[2].UserId, certificates[2].Created, certificates[2].Link).
-				AddRow(certificates[3].Id, certificates[3].UserId, certificates[3].Created, certificates[3].Link)
+			rows := sqlmock.NewRows([]string{"id", "user_id", "created", "link", "is_deleted"}).
+				AddRow(certificates[0].Id, certificates[0].UserId, certificates[0].Created, certificates[0].Link, certificates[0].IsDeleted).
+				AddRow(certificates[1].Id, certificates[1].UserId, certificates[1].Created, certificates[1].Link, certificates[1].IsDeleted).
+				AddRow(certificates[2].Id, certificates[2].UserId, certificates[2].Created, certificates[2].Link, certificates[2].IsDeleted).
+				AddRow(certificates[3].Id, certificates[3].UserId, certificates[3].Created, certificates[3].Link, certificates[3].IsDeleted)
 			mock.ExpectQuery(
-				"SELECT id, user_id, created, link FROM " + tableName + " LIMIT 3 OFFSET 0").
+				"SELECT id, user_id, created, link, is_deleted FROM " + tableName + " WHERE").
 				WillReturnRows(rows)
 
 		})
 
 		It("Test get list certificates", func() {
-			grpc = api.NewOcpCertificateApi(r, p, batchSize)
+			grpc = api.NewOcpCertificateApi(r, m, p, s)
 			Expect(grpc).ShouldNot(BeNil())
 			Expect(err).Should(BeNil())
 
@@ -244,30 +243,6 @@ var _ = Describe("Api", func() {
 			Expect(response.Certificates[1].Link).Should(BeEquivalentTo(certificates[1].Link))
 			Expect(response.Certificates[2].Link).Should(BeEquivalentTo(certificates[2].Link))
 			Expect(response.Certificates[3].Link).Should(BeEquivalentTo(certificates[3].Link))
-		})
-	})
-
-	Context("Test RemoveCertificateV1Request", func() {
-		var req *desc.RemoveCertificateV1Request
-
-		BeforeEach(func() {
-			req = &desc.RemoveCertificateV1Request{
-				CertificateId: certificates[1].Id,
-			}
-
-			mock.ExpectExec("DELETE FROM " + tableName).
-				WillReturnResult(sqlmock.NewResult(1, 1))
-
-		})
-
-		It("Test remove certificate", func() {
-			grpc = api.NewOcpCertificateApi(r, p, batchSize)
-			Expect(grpc).ShouldNot(BeNil())
-			Expect(err).Should(BeNil())
-
-			response, err := grpc.RemoveCertificateV1(ctx, req)
-			Expect(err).Should(BeNil())
-			Expect(response.Removed).Should(BeEquivalentTo(true))
 		})
 	})
 })

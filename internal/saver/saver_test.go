@@ -32,9 +32,9 @@ var _ = Describe("Saver", func() {
 
 		now := time.Now()
 		certificates = []model.Certificate{
-			{1.0, 1.0, now, "https://link"},
-			{2.0, 2.0, now, "https://link"},
-			{3.0, 3.0, now, "https://link"},
+			{1.0, 1.0, now, "https://link.ru", false},
+			{2.0, 2.0, now, "https://link.ru", false},
+			{3.0, 3.0, now, "https://link.ru", false},
 		}
 	})
 

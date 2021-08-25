@@ -31,10 +31,10 @@ var _ = Describe("Flusher", func() {
 		ctx = context.Background()
 
 		certificates = []model.Certificate{
-			{1.0, 1.0, now, "http://link"},
-			{2.0, 2.0, now, "http://link"},
-			{3.0, 3.0, now, "http://link"},
-			{4.0, 4.0, now, "http://link"},
+			{1.0, 1.0, now, "https://link.ru", false},
+			{2.0, 2.0, now, "https://link.ru", false},
+			{3.0, 3.0, now, "https://link.ru", false},
+			{4.0, 4.0, now, "https://link.ru", false},
 		}
 	})
 

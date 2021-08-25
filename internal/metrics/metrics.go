@@ -5,37 +5,45 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-var (
-	createCounter prometheus.Counter
-	updateCounter prometheus.Counter
-	removeCounter prometheus.Counter
-)
-
-func RegisterMetrics() {
-	createCounter = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "ocp_certificate_api_create_count_total",
-		Help: "The total create certificate",
-	})
-
-	updateCounter = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "ocp_certificate_api_update_count_total",
-		Help: "The total update certificate",
-	})
-
-	removeCounter = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "ocp_certificate_api_remove_count_total",
-		Help: "The total remove certificate",
-	})
+type Metrics interface {
+	CreateCounterInc()
+	UpdateCounterInc()
+	MultiCreateCounterInc()
 }
 
-func CreateCounterInc() {
-	createCounter.Inc()
+type metrics struct {
+	createCounter      prometheus.Counter
+	updateCounter      prometheus.Counter
+	multiCreateCounter prometheus.Counter
 }
 
-func UpdateCounterInc() {
-	updateCounter.Inc()
+func NewMetrics() *metrics {
+	return &metrics{
+		createCounter: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "ocp_certificate_api_create_count_total",
+			Help: "The total create certificate",
+		}),
+
+		updateCounter: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "ocp_certificate_api_update_count_total",
+			Help: "The total update certificate",
+		}),
+
+		multiCreateCounter: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "ocp_certificate_api_multi_create_count_total",
+			Help: "The total multi create certificate",
+		}),
+	}
 }
 
-func RemoveCounterInc() {
-	removeCounter.Inc()
+func (m *metrics) CreateCounterInc() {
+	m.createCounter.Inc()
+}
+
+func (m *metrics) UpdateCounterInc() {
+	m.updateCounter.Inc()
+}
+
+func (m *metrics) MultiCreateCounterInc() {
+	m.multiCreateCounter.Inc()
 }

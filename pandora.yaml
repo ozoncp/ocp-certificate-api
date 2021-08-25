@@ -1,0 +1,23 @@
+pools:
+  - gun:
+      type: ocp-certificate-api-gun
+      target: localhost:8082
+
+    ammo:
+      type: ocp-certificate-api-provider
+      source: # You may just write file path here. Or stdin.
+        type: inline
+        data: |
+          {"tag": "/v1/certificates", "param": ""}
+    result:
+      type: json
+      sink: stdout # Just for interactivity print result to stdout. Usually file used here.
+
+    rps:
+      - {duration: 2s, type: line,  from: 1, to: 50}
+    startup:
+      type: once
+      times: 5
+
+log:
+  level: debug

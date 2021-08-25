@@ -23,7 +23,6 @@ type OcpCertificateApiClient interface {
 	GetCertificateV1(ctx context.Context, in *GetCertificateV1Request, opts ...grpc.CallOption) (*GetCertificateV1Response, error)
 	ListCertificateV1(ctx context.Context, in *ListCertificateV1Request, opts ...grpc.CallOption) (*ListCertificateV1Response, error)
 	UpdateCertificateV1(ctx context.Context, in *UpdateCertificateV1Request, opts ...grpc.CallOption) (*UpdateCertificateV1Response, error)
-	RemoveCertificateV1(ctx context.Context, in *RemoveCertificateV1Request, opts ...grpc.CallOption) (*RemoveCertificateV1Response, error)
 }
 
 type ocpCertificateApiClient struct {
@@ -79,15 +78,6 @@ func (c *ocpCertificateApiClient) UpdateCertificateV1(ctx context.Context, in *U
 	return out, nil
 }
 
-func (c *ocpCertificateApiClient) RemoveCertificateV1(ctx context.Context, in *RemoveCertificateV1Request, opts ...grpc.CallOption) (*RemoveCertificateV1Response, error) {
-	out := new(RemoveCertificateV1Response)
-	err := c.cc.Invoke(ctx, "/ocp.certificate.api.OcpCertificateApi/RemoveCertificateV1", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // OcpCertificateApiServer is the server API for OcpCertificateApi service.
 // All implementations must embed UnimplementedOcpCertificateApiServer
 // for forward compatibility
@@ -97,7 +87,6 @@ type OcpCertificateApiServer interface {
 	GetCertificateV1(context.Context, *GetCertificateV1Request) (*GetCertificateV1Response, error)
 	ListCertificateV1(context.Context, *ListCertificateV1Request) (*ListCertificateV1Response, error)
 	UpdateCertificateV1(context.Context, *UpdateCertificateV1Request) (*UpdateCertificateV1Response, error)
-	RemoveCertificateV1(context.Context, *RemoveCertificateV1Request) (*RemoveCertificateV1Response, error)
 	mustEmbedUnimplementedOcpCertificateApiServer()
 }
 
@@ -119,9 +108,6 @@ func (UnimplementedOcpCertificateApiServer) ListCertificateV1(context.Context, *
 }
 func (UnimplementedOcpCertificateApiServer) UpdateCertificateV1(context.Context, *UpdateCertificateV1Request) (*UpdateCertificateV1Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateCertificateV1 not implemented")
-}
-func (UnimplementedOcpCertificateApiServer) RemoveCertificateV1(context.Context, *RemoveCertificateV1Request) (*RemoveCertificateV1Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RemoveCertificateV1 not implemented")
 }
 func (UnimplementedOcpCertificateApiServer) mustEmbedUnimplementedOcpCertificateApiServer() {}
 
@@ -226,24 +212,6 @@ func _OcpCertificateApi_UpdateCertificateV1_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _OcpCertificateApi_RemoveCertificateV1_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RemoveCertificateV1Request)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(OcpCertificateApiServer).RemoveCertificateV1(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/ocp.certificate.api.OcpCertificateApi/RemoveCertificateV1",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(OcpCertificateApiServer).RemoveCertificateV1(ctx, req.(*RemoveCertificateV1Request))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // OcpCertificateApi_ServiceDesc is the grpc.ServiceDesc for OcpCertificateApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -270,10 +238,6 @@ var OcpCertificateApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateCertificateV1",
 			Handler:    _OcpCertificateApi_UpdateCertificateV1_Handler,
-		},
-		{
-			MethodName: "RemoveCertificateV1",
-			Handler:    _OcpCertificateApi_RemoveCertificateV1_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
