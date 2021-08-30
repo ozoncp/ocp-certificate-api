@@ -77,7 +77,7 @@ func ReadFileByCount(filePath string, count int) {
 
 	for i := 0; i < count; i++ {
 		if data, err := readFile(); err == nil {
-			fmt.Printf(string(data))
+			log.Print(string(data))
 		} else {
 			panic(err)
 		}
