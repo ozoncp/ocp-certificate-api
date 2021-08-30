@@ -57,6 +57,18 @@ func (mr *MockMetricsMockRecorder) MultiCreateCounterInc() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MultiCreateCounterInc", reflect.TypeOf((*MockMetrics)(nil).MultiCreateCounterInc))
 }
 
+// RemoveCounterInc mocks base method.
+func (m *MockMetrics) RemoveCounterInc() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "RemoveCounterInc")
+}
+
+// RemoveCounterInc indicates an expected call of RemoveCounterInc.
+func (mr *MockMetricsMockRecorder) RemoveCounterInc() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveCounterInc", reflect.TypeOf((*MockMetrics)(nil).RemoveCounterInc))
+}
+
 // UpdateCounterInc mocks base method.
 func (m *MockMetrics) UpdateCounterInc() {
 	m.ctrl.T.Helper()

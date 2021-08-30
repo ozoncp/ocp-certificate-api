@@ -10,9 +10,9 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	api "github.com/ozoncp/ocp-certificate-api/internal/api"
+	"github.com/ozoncp/ocp-certificate-api/internal/broker"
 	cfg "github.com/ozoncp/ocp-certificate-api/internal/config"
 	"github.com/ozoncp/ocp-certificate-api/internal/metrics"
-	"github.com/ozoncp/ocp-certificate-api/internal/producer"
 	"github.com/ozoncp/ocp-certificate-api/internal/repo"
 	"github.com/ozoncp/ocp-certificate-api/internal/tracer"
 	desc "github.com/ozoncp/ocp-certificate-api/pkg/ocp-certificate-api"
@@ -54,7 +54,7 @@ func initDB() *sqlx.DB {
 }
 
 // grpcServer - grpc server
-func grpcServer(r repo.Repo, m metrics.Metrics, p producer.Producer, c producer.Consumer) (*grpc.Server, net.Listener) {
+func grpcServer(r repo.Repo, m metrics.Metrics, p broker.Producer, c broker.Consumer) (*grpc.Server, net.Listener) {
 	listen, err := net.Listen("tcp", cfg.GetConfigInstance().Grpc.Address)
 	if err != nil {
 		log.Fatal().Msgf("failed to listen: %v", err)
@@ -149,7 +149,7 @@ func metricsServer() *http.Server {
 }
 
 // kafka - message broker
-func kafka(r repo.Repo, m metrics.Metrics) (producer.Producer, producer.Consumer) {
+func kafka(r repo.Repo, m metrics.Metrics) (broker.Producer, broker.Consumer) {
 	config := sarama.NewConfig()
 	config.Producer.RequiredAcks = sarama.WaitForLocal
 	config.Producer.Partitioner = sarama.NewRandomPartitioner
@@ -157,11 +157,11 @@ func kafka(r repo.Repo, m metrics.Metrics) (producer.Producer, producer.Consumer
 
 	syncProducer, err := sarama.NewSyncProducer(cfg.GetConfigInstance().Kafka.Brokers, config)
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to create Sarama new sync producer")
+		log.Fatal().Err(err).Msg("failed to create Sarama new sync broker")
 	}
 
-	prod := producer.NewProducer(syncProducer)
-	cons := producer.NewConsumer(r, m)
+	prod := broker.NewProducer(syncProducer)
+	cons := broker.NewConsumer(r, m)
 
 	log.Info().Msg("Kafka message broker started and init")
 	return prod, cons
@@ -275,7 +275,7 @@ func main() {
 	log.Info().Msg("db stopped")
 
 	prod.Close()
-	log.Info().Msg("producer kafka stopped")
+	log.Info().Msg("broker kafka stopped")
 
 	cons.Close()
 	log.Info().Msg("consumer kafka stopped")

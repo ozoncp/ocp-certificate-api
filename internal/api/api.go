@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/opentracing/opentracing-go"
+	"github.com/ozoncp/ocp-certificate-api/internal/broker"
 	cfg "github.com/ozoncp/ocp-certificate-api/internal/config"
 	"github.com/ozoncp/ocp-certificate-api/internal/metrics"
 	"github.com/ozoncp/ocp-certificate-api/internal/model"
-	"github.com/ozoncp/ocp-certificate-api/internal/producer"
 	"github.com/ozoncp/ocp-certificate-api/internal/repo"
 	"github.com/ozoncp/ocp-certificate-api/internal/utils"
 	desc "github.com/ozoncp/ocp-certificate-api/pkg/ocp-certificate-api"
@@ -23,13 +23,13 @@ type api struct {
 	desc.UnimplementedOcpCertificateApiServer
 	repo repo.Repo
 	metr metrics.Metrics
-	prod producer.Producer
-	cons producer.Consumer
+	prod broker.Producer
+	cons broker.Consumer
 }
 
 // NewOcpCertificateAPI constructor
-func NewOcpCertificateAPI(repo repo.Repo, metr metrics.Metrics, prod producer.Producer,
-	cons producer.Consumer) desc.OcpCertificateApiServer {
+func NewOcpCertificateAPI(repo repo.Repo, metr metrics.Metrics, prod broker.Producer,
+	cons broker.Consumer) desc.OcpCertificateApiServer {
 	return &api{
 		repo: repo,
 		metr: metr,
@@ -67,12 +67,12 @@ func (a *api) MultiCreateCertificatesV1(
 	response := &desc.MultiCreateCertificatesV1Response{}
 	for i := 0; i < len(certBulks); i++ {
 		err := a.prod.Send("multi",
-			producer.CreateMessages(producer.MultiCreate, certBulks[i]))
+			broker.CreateMessages(broker.MultiCreate, certBulks[i]))
 		if err != nil {
 			log.Error().Msgf("failed send message kafka: %v", err)
 		}
 
-		if err = a.cons.Subscribe("multi", producer.MultiCreate); err != nil {
+		if err = a.cons.Subscribe("multi", broker.MultiCreate); err != nil {
 			return nil, err
 		}
 
@@ -119,10 +119,10 @@ func (a *api) CreateCertificateV1(
 	span.SetTag("id", certificate.ID)
 	a.metr.CreateCounterInc()
 	err = a.prod.Send(cfg.GetConfigInstance().Kafka.Topic,
-		producer.CreateMessage(producer.Create,
+		broker.CreateMessage(broker.Create,
 			model.CertificateID{
 				ID:        certificate.ID,
-				Action:    producer.Create.String(),
+				Action:    broker.Create.String(),
 				Timestamp: time.Now().Unix(),
 			}))
 	if err != nil {
@@ -250,10 +250,10 @@ func (a *api) UpdateCertificateV1(
 	span.SetTag("id", certificate.ID)
 	a.metr.UpdateCounterInc()
 	err = a.prod.Send(cfg.GetConfigInstance().Kafka.Topic,
-		producer.CreateMessage(producer.Update,
+		broker.CreateMessage(broker.Update,
 			model.CertificateID{
 				ID:        certificate.ID,
-				Action:    producer.Update.String(),
+				Action:    broker.Update.String(),
 				Timestamp: time.Now().Unix(),
 			}))
 	if err != nil {
@@ -264,6 +264,48 @@ func (a *api) UpdateCertificateV1(
 	}
 
 	log.Info().Msg("update of the certificate was successful")
+
+	return response, nil
+}
+
+// RemoveCertificateV1 request for remove certificate
+func (a *api) RemoveCertificateV1(
+	ctx context.Context,
+	req *desc.RemoveCertificateV1Request,
+) (*desc.RemoveCertificateV1Response, error) {
+	if err := req.Validate(); err != nil {
+		log.Error().Err(err).Msg("Invalid arguments was received when removing a certificate")
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	tracer := opentracing.GlobalTracer()
+	span := tracer.StartSpan("RemoveCertificateV1Request")
+	defer span.Finish()
+
+	removed, err := a.repo.RemoveCertificate(ctx, req.CertificateId)
+
+	if err != nil {
+		log.Error().Err(err).Msg("failed when try remove certificate")
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	span.SetTag("id", req.CertificateId)
+	a.metr.RemoveCounterInc()
+	err = a.prod.Send(cfg.GetConfigInstance().Kafka.Topic,
+		broker.CreateMessage(broker.Remove,
+			model.CertificateID{
+				ID:        req.CertificateId,
+				Action:    broker.Update.String(),
+				Timestamp: time.Now().Unix(),
+			}))
+	if err != nil {
+		log.Error().Msgf("failed send message kafka: %v", err)
+	}
+	response := &desc.RemoveCertificateV1Response{
+		Removed: removed,
+	}
+
+	log.Info().Msg("removing of the certificate was successful")
 
 	return response, nil
 }

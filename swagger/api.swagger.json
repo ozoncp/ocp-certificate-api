@@ -170,6 +170,35 @@
         "tags": [
           "OcpCertificateApi"
         ]
+      },
+      "delete": {
+        "operationId": "OcpCertificateApi_RemoveCertificateV1",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiRemoveCertificateV1Response"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "certificate_id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          }
+        ],
+        "tags": [
+          "OcpCertificateApi"
+        ]
       }
     }
   },
@@ -273,6 +302,14 @@
           "type": "string"
         },
         "isDeleted": {
+          "type": "boolean"
+        }
+      }
+    },
+    "apiRemoveCertificateV1Response": {
+      "type": "object",
+      "properties": {
+        "removed": {
           "type": "boolean"
         }
       }

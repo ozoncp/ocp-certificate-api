@@ -94,6 +94,21 @@ func (mr *MockRepoMockRecorder) MultiCreateCertificates(arg0, arg1 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MultiCreateCertificates", reflect.TypeOf((*MockRepo)(nil).MultiCreateCertificates), arg0, arg1)
 }
 
+// RemoveCertificate mocks base method.
+func (m *MockRepo) RemoveCertificate(arg0 context.Context, arg1 uint64) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveCertificate", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RemoveCertificate indicates an expected call of RemoveCertificate.
+func (mr *MockRepoMockRecorder) RemoveCertificate(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveCertificate", reflect.TypeOf((*MockRepo)(nil).RemoveCertificate), arg0, arg1)
+}
+
 // UpdateCertificate mocks base method.
 func (m *MockRepo) UpdateCertificate(arg0 context.Context, arg1 model.Certificate) (bool, error) {
 	m.ctrl.T.Helper()

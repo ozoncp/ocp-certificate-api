@@ -10,9 +10,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/ozoncp/ocp-certificate-api/internal/api"
+	"github.com/ozoncp/ocp-certificate-api/internal/broker"
 	mockMetr "github.com/ozoncp/ocp-certificate-api/internal/mocks"
 	"github.com/ozoncp/ocp-certificate-api/internal/model"
-	"github.com/ozoncp/ocp-certificate-api/internal/producer"
 	"github.com/ozoncp/ocp-certificate-api/internal/repo"
 	desc "github.com/ozoncp/ocp-certificate-api/pkg/ocp-certificate-api"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -37,8 +37,8 @@ var _ = Describe("Api", func() {
 		certificates []model.Certificate
 		synProdMock  *mocks.SyncProducer
 
-		p producer.Producer
-		s producer.Consumer
+		p broker.Producer
+		s broker.Consumer
 	)
 
 	BeforeEach(func() {
@@ -54,8 +54,8 @@ var _ = Describe("Api", func() {
 		m = mockMetr.NewMockMetrics(controller)
 		synProdMock = mocks.NewSyncProducer(controller.T, nil)
 
-		p = producer.NewProducer(synProdMock)
-		s = producer.NewConsumer(r, m)
+		p = broker.NewProducer(synProdMock)
+		s = broker.NewConsumer(r, m)
 		grpc = api.NewOcpCertificateAPI(r, m, p, s)
 		link := "https://link.ru"
 
@@ -251,6 +251,33 @@ var _ = Describe("Api", func() {
 			Expect(response.Certificates[1].Link).Should(BeEquivalentTo(certificates[1].Link))
 			Expect(response.Certificates[2].Link).Should(BeEquivalentTo(certificates[2].Link))
 			Expect(response.Certificates[3].Link).Should(BeEquivalentTo(certificates[3].Link))
+		})
+	})
+
+	Context("Test RemoveCertificateV1Request", func() {
+		var req *desc.RemoveCertificateV1Request
+		var err error
+
+		BeforeEach(func() {
+			synProdMock.ExpectSendMessageAndSucceed()
+			m.EXPECT().RemoveCounterInc()
+			req = &desc.RemoveCertificateV1Request{
+				CertificateId: certificates[1].ID,
+			}
+
+			mock.ExpectExec("DELETE FROM " + tableName).
+				WillReturnResult(sqlmock.NewResult(1, 1))
+
+		})
+
+		It("Test remove certificate", func() {
+			grpc = api.NewOcpCertificateAPI(r, m, p, s)
+			Expect(grpc).ShouldNot(BeNil())
+			Expect(err).Should(BeNil())
+
+			response, err := grpc.RemoveCertificateV1(ctx, req)
+			Expect(err).Should(BeNil())
+			Expect(response.Removed).Should(BeEquivalentTo(true))
 		})
 	})
 })

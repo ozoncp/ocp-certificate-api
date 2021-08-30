@@ -1,4 +1,4 @@
-package producer
+package broker
 
 import "github.com/ozoncp/ocp-certificate-api/internal/model"
 

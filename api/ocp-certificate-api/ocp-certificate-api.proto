@@ -41,6 +41,12 @@ service OcpCertificateApi {
       body: "*"
     };
   }
+
+  rpc RemoveCertificateV1(RemoveCertificateV1Request) returns (RemoveCertificateV1Response) {
+    option (google.api.http) = {
+      delete: "/v1/certificates/{certificate_id}"
+    };
+  }
 }
 
 message NewCertificate {
@@ -99,4 +105,12 @@ message UpdateCertificateV1Request {
 }
 message UpdateCertificateV1Response {
   bool updated = 1;
+}
+
+// Delete
+message RemoveCertificateV1Request {
+  uint64 certificate_id = 1 [(validate.rules).uint64.gt = 0];
+}
+message RemoveCertificateV1Response {
+  bool removed = 1;
 }

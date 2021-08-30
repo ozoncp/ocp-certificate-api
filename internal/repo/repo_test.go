@@ -161,4 +161,18 @@ var _ = Describe("Repo", func() {
 			Expect(certificate[1].Link).Should(BeEquivalentTo(certificates[1].Link))
 		})
 	})
+
+	Context("Test RemoveCertificate", func() {
+		BeforeEach(func() {
+			query := mock.ExpectExec("DELETE FROM " + tableName + " WHERE")
+			query.WithArgs(certificates[3].ID)
+			query.WillReturnResult(sqlmock.NewResult(1, 1))
+		})
+
+		It("Test remove certificate", func() {
+			deleted, err := r.RemoveCertificate(ctx, certificates[3].ID)
+			Expect(err).Should(BeNil())
+			Expect(deleted).Should(BeEquivalentTo(true))
+		})
+	})
 })
