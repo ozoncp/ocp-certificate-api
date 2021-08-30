@@ -1,4 +1,4 @@
-package producer
+package broker
 
 import "github.com/ozoncp/ocp-certificate-api/internal/model"
 
@@ -14,17 +14,17 @@ const (
 // Message - struct to build messages
 type Message struct {
 	Type ActionType
-	Body model.CertificateID
+	Body model.CertificateEvent
 }
 
-// Messages - struct to build messages
-type Messages struct {
+// AsyncMultipleCreate - struct to build messages
+type AsyncMultipleCreate struct {
 	Type ActionType
 	Body []model.Certificate
 }
 
 // CreateMessage - build messages and send to kafka
-func CreateMessage(actionType ActionType, certificateID model.CertificateID) Message {
+func CreateMessage(actionType ActionType, certificateID model.CertificateEvent) Message {
 	return Message{
 		Type: actionType,
 		Body: certificateID,
@@ -32,8 +32,8 @@ func CreateMessage(actionType ActionType, certificateID model.CertificateID) Mes
 }
 
 // CreateMessages - build messages and send to kafka
-func CreateMessages(actionType ActionType, certificates []model.Certificate) Messages {
-	return Messages{
+func CreateMessages(actionType ActionType, certificates []model.Certificate) AsyncMultipleCreate {
+	return AsyncMultipleCreate{
 		Type: actionType,
 		Body: certificates,
 	}

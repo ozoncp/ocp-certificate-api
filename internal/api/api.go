@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/opentracing/opentracing-go"
+	"github.com/ozoncp/ocp-certificate-api/internal/broker"
 	cfg "github.com/ozoncp/ocp-certificate-api/internal/config"
 	"github.com/ozoncp/ocp-certificate-api/internal/metrics"
 	"github.com/ozoncp/ocp-certificate-api/internal/model"
-	"github.com/ozoncp/ocp-certificate-api/internal/producer"
 	"github.com/ozoncp/ocp-certificate-api/internal/repo"
 	"github.com/ozoncp/ocp-certificate-api/internal/utils"
 	desc "github.com/ozoncp/ocp-certificate-api/pkg/ocp-certificate-api"
@@ -23,18 +23,15 @@ type api struct {
 	desc.UnimplementedOcpCertificateApiServer
 	repo repo.Repo
 	metr metrics.Metrics
-	prod producer.Producer
-	cons producer.Consumer
+	prod broker.Producer
 }
 
 // NewOcpCertificateAPI constructor
-func NewOcpCertificateAPI(repo repo.Repo, metr metrics.Metrics, prod producer.Producer,
-	cons producer.Consumer) desc.OcpCertificateApiServer {
+func NewOcpCertificateAPI(repo repo.Repo, metr metrics.Metrics, prod broker.Producer) desc.OcpCertificateApiServer {
 	return &api{
 		repo: repo,
 		metr: metr,
 		prod: prod,
-		cons: cons,
 	}
 }
 
@@ -55,10 +52,9 @@ func (a *api) MultiCreateCertificatesV1(
 	var certificates []model.Certificate
 	for _, certificate := range req.Certificates {
 		certificates = append(certificates, model.Certificate{
-			UserID:    certificate.UserId,
-			Created:   certificate.Created.AsTime(),
-			Link:      certificate.Link,
-			IsDeleted: certificate.IsDeleted,
+			UserID:  certificate.UserId,
+			Created: certificate.Created.AsTime(),
+			Link:    certificate.Link,
 		})
 	}
 
@@ -67,13 +63,9 @@ func (a *api) MultiCreateCertificatesV1(
 	response := &desc.MultiCreateCertificatesV1Response{}
 	for i := 0; i < len(certBulks); i++ {
 		err := a.prod.Send("multi",
-			producer.CreateMessages(producer.MultiCreate, certBulks[i]))
+			broker.CreateMessages(broker.MultiCreate, certBulks[i]))
 		if err != nil {
 			log.Error().Msgf("failed send message kafka: %v", err)
-		}
-
-		if err = a.cons.Subscribe("multi", producer.MultiCreate); err != nil {
-			return nil, err
 		}
 
 		childSpan := tracer.StartSpan(
@@ -103,10 +95,9 @@ func (a *api) CreateCertificateV1(
 	defer span.Finish()
 
 	certificate := &model.Certificate{
-		UserID:    req.Certificate.UserId,
-		Created:   req.Certificate.Created.AsTime(),
-		Link:      req.Certificate.Link,
-		IsDeleted: req.Certificate.IsDeleted,
+		UserID:  req.UserId,
+		Created: req.Created.AsTime(),
+		Link:    req.Link,
 	}
 
 	err := a.repo.CreateCertificate(ctx, certificate)
@@ -119,10 +110,10 @@ func (a *api) CreateCertificateV1(
 	span.SetTag("id", certificate.ID)
 	a.metr.CreateCounterInc()
 	err = a.prod.Send(cfg.GetConfigInstance().Kafka.Topic,
-		producer.CreateMessage(producer.Create,
-			model.CertificateID{
+		broker.CreateMessage(broker.Create,
+			model.CertificateEvent{
 				ID:        certificate.ID,
-				Action:    producer.Create.String(),
+				Action:    broker.Create.String(),
 				Timestamp: time.Now().Unix(),
 			}))
 	if err != nil {
@@ -159,12 +150,11 @@ func (a *api) GetCertificateV1(
 
 	span.SetTag("id", certificate.ID)
 	response := &desc.GetCertificateV1Response{
-		Certificate: &desc.Certificate{
-			Id:        certificate.ID,
-			UserId:    certificate.UserID,
-			Created:   timestamppb.New(certificate.Created),
-			Link:      certificate.Link,
-			IsDeleted: certificate.IsDeleted,
+		Certificate: &desc.UpdateCertificateV1Request{
+			Id:      certificate.ID,
+			UserId:  certificate.UserID,
+			Created: timestamppb.New(certificate.Created),
+			Link:    certificate.Link,
 		},
 	}
 
@@ -190,14 +180,13 @@ func (a *api) ListCertificateV1(
 
 	log.Info().Msgf("found count certificates: %d", len(listCertificates))
 
-	certificates := make([]*desc.Certificate, 0, len(listCertificates))
+	certificates := make([]*desc.UpdateCertificateV1Request, 0, len(listCertificates))
 	for _, certificate := range listCertificates {
-		cert := &desc.Certificate{
-			Id:        certificate.ID,
-			UserId:    certificate.UserID,
-			Created:   timestamppb.New(certificate.Created),
-			Link:      certificate.Link,
-			IsDeleted: certificate.IsDeleted,
+		cert := &desc.UpdateCertificateV1Request{
+			Id:      certificate.ID,
+			UserId:  certificate.UserID,
+			Created: timestamppb.New(certificate.Created),
+			Link:    certificate.Link,
 		}
 
 		certificates = append(certificates, cert)
@@ -233,11 +222,10 @@ func (a *api) UpdateCertificateV1(
 	defer span.Finish()
 
 	certificate := model.Certificate{
-		ID:        req.Certificate.Id,
-		UserID:    req.Certificate.UserId,
-		Created:   req.Certificate.Created.AsTime(),
-		Link:      req.Certificate.Link,
-		IsDeleted: req.Certificate.IsDeleted,
+		ID:      req.Id,
+		UserID:  req.UserId,
+		Created: req.Created.AsTime(),
+		Link:    req.Link,
 	}
 
 	updated, err := a.repo.UpdateCertificate(ctx, certificate)
@@ -250,10 +238,10 @@ func (a *api) UpdateCertificateV1(
 	span.SetTag("id", certificate.ID)
 	a.metr.UpdateCounterInc()
 	err = a.prod.Send(cfg.GetConfigInstance().Kafka.Topic,
-		producer.CreateMessage(producer.Update,
-			model.CertificateID{
+		broker.CreateMessage(broker.Update,
+			model.CertificateEvent{
 				ID:        certificate.ID,
-				Action:    producer.Update.String(),
+				Action:    broker.Update.String(),
 				Timestamp: time.Now().Unix(),
 			}))
 	if err != nil {
@@ -264,6 +252,48 @@ func (a *api) UpdateCertificateV1(
 	}
 
 	log.Info().Msg("update of the certificate was successful")
+
+	return response, nil
+}
+
+// RemoveCertificateV1 request for remove certificate
+func (a *api) RemoveCertificateV1(
+	ctx context.Context,
+	req *desc.RemoveCertificateV1Request,
+) (*desc.RemoveCertificateV1Response, error) {
+	if err := req.Validate(); err != nil {
+		log.Error().Err(err).Msg("Invalid arguments was received when removing a certificate")
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	tracer := opentracing.GlobalTracer()
+	span := tracer.StartSpan("RemoveCertificateV1Request")
+	defer span.Finish()
+
+	removed, err := a.repo.RemoveCertificate(ctx, req.CertificateId)
+
+	if err != nil {
+		log.Error().Err(err).Msg("failed when try remove certificate")
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	span.SetTag("id", req.CertificateId)
+	a.metr.RemoveCounterInc()
+	err = a.prod.Send(cfg.GetConfigInstance().Kafka.Topic,
+		broker.CreateMessage(broker.Remove,
+			model.CertificateEvent{
+				ID:        req.CertificateId,
+				Action:    broker.Update.String(),
+				Timestamp: time.Now().Unix(),
+			}))
+	if err != nil {
+		log.Error().Msgf("failed send message kafka: %v", err)
+	}
+	response := &desc.RemoveCertificateV1Response{
+		Removed: removed,
+	}
+
+	log.Info().Msg("removing of the certificate was successful")
 
 	return response, nil
 }

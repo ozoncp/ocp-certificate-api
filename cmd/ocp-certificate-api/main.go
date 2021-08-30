@@ -10,9 +10,9 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	api "github.com/ozoncp/ocp-certificate-api/internal/api"
+	"github.com/ozoncp/ocp-certificate-api/internal/broker"
 	cfg "github.com/ozoncp/ocp-certificate-api/internal/config"
 	"github.com/ozoncp/ocp-certificate-api/internal/metrics"
-	"github.com/ozoncp/ocp-certificate-api/internal/producer"
 	"github.com/ozoncp/ocp-certificate-api/internal/repo"
 	"github.com/ozoncp/ocp-certificate-api/internal/tracer"
 	desc "github.com/ozoncp/ocp-certificate-api/pkg/ocp-certificate-api"
@@ -54,14 +54,14 @@ func initDB() *sqlx.DB {
 }
 
 // grpcServer - grpc server
-func grpcServer(r repo.Repo, m metrics.Metrics, p producer.Producer, c producer.Consumer) (*grpc.Server, net.Listener) {
+func grpcServer(r repo.Repo, m metrics.Metrics, p broker.Producer) (*grpc.Server, net.Listener) {
 	listen, err := net.Listen("tcp", cfg.GetConfigInstance().Grpc.Address)
 	if err != nil {
 		log.Fatal().Msgf("failed to listen: %v", err)
 	}
 
 	gSrv := grpc.NewServer()
-	desc.RegisterOcpCertificateApiServer(gSrv, api.NewOcpCertificateAPI(r, m, p, c))
+	desc.RegisterOcpCertificateApiServer(gSrv, api.NewOcpCertificateAPI(r, m, p))
 
 	log.Info().Msg("gRPC server started")
 	return gSrv, listen
@@ -148,8 +148,8 @@ func metricsServer() *http.Server {
 	return srv
 }
 
-// kafka - message broker
-func kafka(r repo.Repo, m metrics.Metrics) (producer.Producer, producer.Consumer) {
+// producer - message broker
+func producer() broker.Producer {
 	config := sarama.NewConfig()
 	config.Producer.RequiredAcks = sarama.WaitForLocal
 	config.Producer.Partitioner = sarama.NewRandomPartitioner
@@ -157,14 +157,24 @@ func kafka(r repo.Repo, m metrics.Metrics) (producer.Producer, producer.Consumer
 
 	syncProducer, err := sarama.NewSyncProducer(cfg.GetConfigInstance().Kafka.Brokers, config)
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to create Sarama new sync producer")
+		log.Fatal().Err(err).Msg("failed to create Sarama new sync broker")
 	}
 
-	prod := producer.NewProducer(syncProducer)
-	cons := producer.NewConsumer(r, m)
+	prod := broker.NewProducer(syncProducer)
 
-	log.Info().Msg("Kafka message broker started and init")
-	return prod, cons
+	log.Info().Msg("producer message broker started and init")
+	return prod
+}
+
+func consumer(r repo.Repo, m metrics.Metrics) (broker.Consumer, error) {
+	cons := broker.NewConsumer(r, m)
+
+	if err := cons.Subscribe("multi", broker.MultiCreate); err != nil {
+		return nil, err
+	}
+
+	log.Info().Msg("consumer message broker started and init")
+	return cons, nil
 }
 
 func migrationsCli(db *sqlx.DB) error {
@@ -226,8 +236,12 @@ func main() {
 	m := metrics.NewMetrics()
 	mSrv := metricsServer()
 
-	// kafka message broker
-	prod, cons := kafka(newRepo, m)
+	// message broker
+	prod := producer()
+	cons, err := consumer(newRepo, m)
+	if err != nil {
+		log.Err(err).Msg("failed subscribe consumer")
+	}
 
 	// Rest server
 	rSrv, err := restServer(ctx)
@@ -236,7 +250,7 @@ func main() {
 	}
 
 	// Grpc server
-	gSrv, listen := grpcServer(newRepo, m, prod, cons)
+	gSrv, listen := grpcServer(newRepo, m, prod)
 
 	// Rest server running
 	grp.Go(func() error {
@@ -275,10 +289,10 @@ func main() {
 	log.Info().Msg("db stopped")
 
 	prod.Close()
-	log.Info().Msg("producer kafka stopped")
+	log.Info().Msg("broker producer stopped")
 
 	cons.Close()
-	log.Info().Msg("consumer kafka stopped")
+	log.Info().Msg("consumer producer stopped")
 
 	cancel()
 

@@ -33,190 +33,6 @@ var (
 	_ = anypb.Any{}
 )
 
-// Validate checks the field values on NewCertificate with the rules defined in
-// the proto definition for this message. If any rules are violated, an error
-// is returned.
-func (m *NewCertificate) Validate() error {
-	if m == nil {
-		return nil
-	}
-
-	if m.GetUserId() <= 0 {
-		return NewCertificateValidationError{
-			field:  "UserID",
-			reason: "value must be greater than 0",
-		}
-	}
-
-	if v, ok := interface{}(m.GetCreated()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return NewCertificateValidationError{
-				field:  "Created",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
-	}
-
-	// no validation rules for Link
-
-	if m.GetIsDeleted() != false {
-		return NewCertificateValidationError{
-			field:  "IsDeleted",
-			reason: "value must equal false",
-		}
-	}
-
-	return nil
-}
-
-// NewCertificateValidationError is the validation error returned by
-// NewCertificate.Validate if the designated constraints aren't met.
-type NewCertificateValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e NewCertificateValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e NewCertificateValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e NewCertificateValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e NewCertificateValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e NewCertificateValidationError) ErrorName() string { return "NewCertificateValidationError" }
-
-// Error satisfies the builtin error interface
-func (e NewCertificateValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sNewCertificate.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = NewCertificateValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = NewCertificateValidationError{}
-
-// Validate checks the field values on Certificate with the rules defined in
-// the proto definition for this message. If any rules are violated, an error
-// is returned.
-func (m *Certificate) Validate() error {
-	if m == nil {
-		return nil
-	}
-
-	if m.GetId() <= 0 {
-		return CertificateValidationError{
-			field:  "ID",
-			reason: "value must be greater than 0",
-		}
-	}
-
-	if m.GetUserId() <= 0 {
-		return CertificateValidationError{
-			field:  "UserID",
-			reason: "value must be greater than 0",
-		}
-	}
-
-	if v, ok := interface{}(m.GetCreated()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return CertificateValidationError{
-				field:  "Created",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
-	}
-
-	// no validation rules for Link
-
-	// no validation rules for IsDeleted
-
-	return nil
-}
-
-// CertificateValidationError is the validation error returned by
-// Certificate.Validate if the designated constraints aren't met.
-type CertificateValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e CertificateValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e CertificateValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e CertificateValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e CertificateValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e CertificateValidationError) ErrorName() string { return "CertificateValidationError" }
-
-// Error satisfies the builtin error interface
-func (e CertificateValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sCertificate.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = CertificateValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = CertificateValidationError{}
-
 // Validate checks the field values on MultiCreateCertificatesV1Request with
 // the rules defined in the proto definition for this message. If any rules
 // are violated, an error is returned.
@@ -390,15 +206,24 @@ func (m *CreateCertificateV1Request) Validate() error {
 		return nil
 	}
 
-	if v, ok := interface{}(m.GetCertificate()).(interface{ Validate() error }); ok {
+	if m.GetUserId() <= 0 {
+		return CreateCertificateV1RequestValidationError{
+			field:  "UserId",
+			reason: "value must be greater than 0",
+		}
+	}
+
+	if v, ok := interface{}(m.GetCreated()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return CreateCertificateV1RequestValidationError{
-				field:  "Certificate",
+				field:  "Created",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
 		}
 	}
+
+	// no validation rules for Link
 
 	return nil
 }
@@ -851,15 +676,31 @@ func (m *UpdateCertificateV1Request) Validate() error {
 		return nil
 	}
 
-	if v, ok := interface{}(m.GetCertificate()).(interface{ Validate() error }); ok {
+	if m.GetId() <= 0 {
+		return UpdateCertificateV1RequestValidationError{
+			field:  "Id",
+			reason: "value must be greater than 0",
+		}
+	}
+
+	if m.GetUserId() <= 0 {
+		return UpdateCertificateV1RequestValidationError{
+			field:  "UserId",
+			reason: "value must be greater than 0",
+		}
+	}
+
+	if v, ok := interface{}(m.GetCreated()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return UpdateCertificateV1RequestValidationError{
-				field:  "Certificate",
+				field:  "Created",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
 		}
 	}
+
+	// no validation rules for Link
 
 	return nil
 }
@@ -989,3 +830,147 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = UpdateCertificateV1ResponseValidationError{}
+
+// Validate checks the field values on RemoveCertificateV1Request with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, an error is returned.
+func (m *RemoveCertificateV1Request) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if m.GetCertificateId() <= 0 {
+		return RemoveCertificateV1RequestValidationError{
+			field:  "CertificateId",
+			reason: "value must be greater than 0",
+		}
+	}
+
+	return nil
+}
+
+// RemoveCertificateV1RequestValidationError is the validation error returned
+// by RemoveCertificateV1Request.Validate if the designated constraints aren't met.
+type RemoveCertificateV1RequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e RemoveCertificateV1RequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e RemoveCertificateV1RequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e RemoveCertificateV1RequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e RemoveCertificateV1RequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e RemoveCertificateV1RequestValidationError) ErrorName() string {
+	return "RemoveCertificateV1RequestValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e RemoveCertificateV1RequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sRemoveCertificateV1Request.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = RemoveCertificateV1RequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = RemoveCertificateV1RequestValidationError{}
+
+// Validate checks the field values on RemoveCertificateV1Response with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, an error is returned.
+func (m *RemoveCertificateV1Response) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	// no validation rules for Removed
+
+	return nil
+}
+
+// RemoveCertificateV1ResponseValidationError is the validation error returned
+// by RemoveCertificateV1Response.Validate if the designated constraints
+// aren't met.
+type RemoveCertificateV1ResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e RemoveCertificateV1ResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e RemoveCertificateV1ResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e RemoveCertificateV1ResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e RemoveCertificateV1ResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e RemoveCertificateV1ResponseValidationError) ErrorName() string {
+	return "RemoveCertificateV1ResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e RemoveCertificateV1ResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sRemoveCertificateV1Response.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = RemoveCertificateV1ResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = RemoveCertificateV1ResponseValidationError{}

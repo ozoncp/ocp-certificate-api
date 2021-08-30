@@ -170,18 +170,43 @@
         "tags": [
           "OcpCertificateApi"
         ]
+      },
+      "delete": {
+        "operationId": "OcpCertificateApi_RemoveCertificateV1",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiRemoveCertificateV1Response"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "certificate_id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uint64"
+          }
+        ],
+        "tags": [
+          "OcpCertificateApi"
+        ]
       }
     }
   },
   "definitions": {
-    "apiCertificate": {
+    "apiCreateCertificateV1Request": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "userId": {
+        "user_id": {
           "type": "string",
           "format": "uint64"
         },
@@ -191,17 +216,6 @@
         },
         "link": {
           "type": "string"
-        },
-        "isDeleted": {
-          "type": "boolean"
-        }
-      }
-    },
-    "apiCreateCertificateV1Request": {
-      "type": "object",
-      "properties": {
-        "certificate": {
-          "$ref": "#/definitions/apiNewCertificate"
         }
       },
       "title": "Create"
@@ -219,7 +233,7 @@
       "type": "object",
       "properties": {
         "certificate": {
-          "$ref": "#/definitions/apiCertificate"
+          "$ref": "#/definitions/apiUpdateCertificateV1Request"
         }
       }
     },
@@ -229,7 +243,7 @@
         "certificates": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/apiCertificate"
+            "$ref": "#/definitions/apiUpdateCertificateV1Request"
           }
         }
       }
@@ -240,7 +254,7 @@
         "certificates": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/apiNewCertificate"
+            "$ref": "#/definitions/apiCreateCertificateV1Request"
           }
         }
       },
@@ -258,10 +272,22 @@
         }
       }
     },
-    "apiNewCertificate": {
+    "apiRemoveCertificateV1Response": {
       "type": "object",
       "properties": {
-        "userId": {
+        "removed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "apiUpdateCertificateV1Request": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "user_id": {
           "type": "string",
           "format": "uint64"
         },
@@ -271,17 +297,6 @@
         },
         "link": {
           "type": "string"
-        },
-        "isDeleted": {
-          "type": "boolean"
-        }
-      }
-    },
-    "apiUpdateCertificateV1Request": {
-      "type": "object",
-      "properties": {
-        "certificate": {
-          "$ref": "#/definitions/apiCertificate"
         }
       },
       "title": "Update"

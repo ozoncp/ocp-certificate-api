@@ -20,6 +20,7 @@ type Repo interface {
 	UpdateCertificate(ctx context.Context, certificate model.Certificate) (bool, error)
 	ListCertificates(ctx context.Context, limit, offset uint64) ([]model.Certificate, error)
 	GetCertificate(ctx context.Context, certificateID uint64) (*model.Certificate, error)
+	RemoveCertificate(ctx context.Context, certificateID uint64) (bool, error)
 }
 
 type repo struct {
@@ -168,4 +169,28 @@ func (r *repo) GetCertificate(ctx context.Context, certificateID uint64) (*model
 	}
 
 	return &certificate, nil
+}
+
+// RemoveCertificate - remove single certificate in database
+func (r *repo) RemoveCertificate(ctx context.Context, certificateID uint64) (bool, error) {
+	query := squirrel.Delete(tableName).
+		Where(squirrel.Eq{"id": certificateID}).
+		RunWith(r.db).
+		PlaceholderFormat(squirrel.Dollar)
+
+	result, err := query.ExecContext(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+
+	if rowsAffected <= 0 {
+		return false, ErrorCertificateNotFound
+	}
+
+	return true, err
 }

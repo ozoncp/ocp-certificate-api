@@ -10,9 +10,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/ozoncp/ocp-certificate-api/internal/api"
+	"github.com/ozoncp/ocp-certificate-api/internal/broker"
 	mockMetr "github.com/ozoncp/ocp-certificate-api/internal/mocks"
 	"github.com/ozoncp/ocp-certificate-api/internal/model"
-	"github.com/ozoncp/ocp-certificate-api/internal/producer"
 	"github.com/ozoncp/ocp-certificate-api/internal/repo"
 	desc "github.com/ozoncp/ocp-certificate-api/pkg/ocp-certificate-api"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -37,8 +37,7 @@ var _ = Describe("Api", func() {
 		certificates []model.Certificate
 		synProdMock  *mocks.SyncProducer
 
-		p producer.Producer
-		s producer.Consumer
+		p broker.Producer
 	)
 
 	BeforeEach(func() {
@@ -54,9 +53,8 @@ var _ = Describe("Api", func() {
 		m = mockMetr.NewMockMetrics(controller)
 		synProdMock = mocks.NewSyncProducer(controller.T, nil)
 
-		p = producer.NewProducer(synProdMock)
-		s = producer.NewConsumer(r, m)
-		grpc = api.NewOcpCertificateAPI(r, m, p, s)
+		p = broker.NewProducer(synProdMock)
+		grpc = api.NewOcpCertificateAPI(r, m, p)
 		link := "https://link.ru"
 
 		certificates = []model.Certificate{
@@ -81,13 +79,12 @@ var _ = Describe("Api", func() {
 		BeforeEach(func() {
 			synProdMock.ExpectSendMessageAndSucceed()
 			m.EXPECT().MultiCreateCounterInc()
-			multiCertificates := make([]*desc.NewCertificate, 0, len(certificates))
+			multiCertificates := make([]*desc.CreateCertificateV1Request, 0, len(certificates))
 			for _, certificate := range certificates {
-				multiCertificates = append(multiCertificates, &desc.NewCertificate{
-					UserId:    certificate.UserID,
-					Created:   timestamppb.New(certificate.Created),
-					Link:      certificate.Link,
-					IsDeleted: certificate.IsDeleted,
+				multiCertificates = append(multiCertificates, &desc.CreateCertificateV1Request{
+					UserId:  certificate.UserID,
+					Created: timestamppb.New(certificate.Created),
+					Link:    certificate.Link,
 				})
 			}
 
@@ -97,7 +94,7 @@ var _ = Describe("Api", func() {
 		})
 
 		It("Test create certificate", func() {
-			grpc = api.NewOcpCertificateAPI(r, m, p, s)
+			grpc = api.NewOcpCertificateAPI(r, m, p)
 			Expect(grpc).ShouldNot(BeNil())
 			_, err = grpc.MultiCreateCertificatesV1(ctx, req)
 			Expect(err).Should(BeNil())
@@ -111,24 +108,21 @@ var _ = Describe("Api", func() {
 			synProdMock.ExpectSendMessageAndSucceed()
 			m.EXPECT().CreateCounterInc()
 			req = &desc.CreateCertificateV1Request{
-				Certificate: &desc.NewCertificate{
-					UserId:    certificates[0].UserID,
-					Created:   timestamppb.New(certificates[0].Created),
-					Link:      certificates[0].Link,
-					IsDeleted: certificates[0].IsDeleted,
-				},
+				UserId:  certificates[0].UserID,
+				Created: timestamppb.New(certificates[0].Created),
+				Link:    certificates[0].Link,
 			}
 
 			rows := sqlmock.NewRows([]string{"id"}).
 				AddRow(1)
 			mock.ExpectQuery("INSERT INTO "+tableName).
-				WithArgs(req.Certificate.UserId, req.Certificate.Created.AsTime(), req.Certificate.Link, req.Certificate.IsDeleted).
+				WithArgs(req.UserId, req.Created.AsTime(), req.Link, false).
 				WillReturnRows(rows)
 
 		})
 
 		It("Test create certificate", func() {
-			grpc = api.NewOcpCertificateAPI(r, m, p, s)
+			grpc = api.NewOcpCertificateAPI(r, m, p)
 			Expect(grpc).ShouldNot(BeNil())
 			response, err := grpc.CreateCertificateV1(ctx, req)
 			Expect(err).Should(BeNil())
@@ -159,7 +153,7 @@ var _ = Describe("Api", func() {
 		})
 
 		It("Test Get certificate", func() {
-			grpc = api.NewOcpCertificateAPI(r, m, p, s)
+			grpc = api.NewOcpCertificateAPI(r, m, p)
 			Expect(grpc).ShouldNot(BeNil())
 			Expect(err).Should(BeNil())
 
@@ -180,28 +174,26 @@ var _ = Describe("Api", func() {
 			synProdMock.ExpectSendMessageAndSucceed()
 			m.EXPECT().UpdateCounterInc()
 			req = &desc.UpdateCertificateV1Request{
-				Certificate: &desc.Certificate{
-					Id:      certificates[3].ID,
-					UserId:  certificates[3].UserID,
-					Created: timestamppb.New(certificates[3].Created),
-					Link:    certificates[3].Link,
-				},
+				Id:      certificates[3].ID,
+				UserId:  certificates[3].UserID,
+				Created: timestamppb.New(certificates[3].Created),
+				Link:    certificates[3].Link,
 			}
 
 			mock.ExpectExec("UPDATE "+tableName+" SET").
 				WithArgs(
-					req.Certificate.UserId,
-					req.Certificate.Created.AsTime(),
-					req.Certificate.Link,
-					req.Certificate.IsDeleted,
-					req.Certificate.Id,
+					req.UserId,
+					req.Created.AsTime(),
+					req.Link,
+					false,
+					req.Id,
 				).
 				WillReturnResult(sqlmock.NewResult(1, 1))
 
 		})
 
 		It("Test update certificate", func() {
-			grpc = api.NewOcpCertificateAPI(r, m, p, s)
+			grpc = api.NewOcpCertificateAPI(r, m, p)
 			Expect(grpc).ShouldNot(BeNil())
 			Expect(err).Should(BeNil())
 
@@ -237,7 +229,7 @@ var _ = Describe("Api", func() {
 		})
 
 		It("Test get list certificates", func() {
-			grpc = api.NewOcpCertificateAPI(r, m, p, s)
+			grpc = api.NewOcpCertificateAPI(r, m, p)
 			Expect(grpc).ShouldNot(BeNil())
 			Expect(err).Should(BeNil())
 
@@ -251,6 +243,33 @@ var _ = Describe("Api", func() {
 			Expect(response.Certificates[1].Link).Should(BeEquivalentTo(certificates[1].Link))
 			Expect(response.Certificates[2].Link).Should(BeEquivalentTo(certificates[2].Link))
 			Expect(response.Certificates[3].Link).Should(BeEquivalentTo(certificates[3].Link))
+		})
+	})
+
+	Context("Test RemoveCertificateV1Request", func() {
+		var req *desc.RemoveCertificateV1Request
+		var err error
+
+		BeforeEach(func() {
+			synProdMock.ExpectSendMessageAndSucceed()
+			m.EXPECT().RemoveCounterInc()
+			req = &desc.RemoveCertificateV1Request{
+				CertificateId: certificates[1].ID,
+			}
+
+			mock.ExpectExec("DELETE FROM " + tableName).
+				WillReturnResult(sqlmock.NewResult(1, 1))
+
+		})
+
+		It("Test remove certificate", func() {
+			grpc = api.NewOcpCertificateAPI(r, m, p)
+			Expect(grpc).ShouldNot(BeNil())
+			Expect(err).Should(BeNil())
+
+			response, err := grpc.RemoveCertificateV1(ctx, req)
+			Expect(err).Should(BeNil())
+			Expect(response.Removed).Should(BeEquivalentTo(true))
 		})
 	})
 })

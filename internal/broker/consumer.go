@@ -1,4 +1,4 @@
-package producer
+package broker
 
 import (
 	"context"
@@ -73,7 +73,7 @@ func (c *consumer) handleMessage(message *sarama.ConsumerMessage, actionType Act
 	c.metr.MultiCreateCounterInc()
 	tcr := opentracing.GlobalTracer()
 
-	var messages Messages
+	var messages AsyncMultipleCreate
 	if err := json.Unmarshal(message.Value, &messages); err != nil {
 		log.Error().Err(err).Msg("Failed parse messages")
 		return
