@@ -9,3 +9,6 @@ vendor.protogen
 
 # Grafana
 data/
+
+# coverage
+*.out
