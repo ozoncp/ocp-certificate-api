@@ -588,17 +588,17 @@ func RegisterOcpCertificateApiHandlerClient(ctx context.Context, mux *runtime.Se
 }
 
 var (
-	pattern_OcpCertificateApi_MultiCreateCertificatesV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "certificates"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_OcpCertificateApi_MultiCreateCertificatesV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "certificates", "list"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_OcpCertificateApi_CreateCertificateV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "certificate"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_OcpCertificateApi_CreateCertificateV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "certificates"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_OcpCertificateApi_GetCertificateV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2}, []string{"v1", "certificate", "certificate_id"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_OcpCertificateApi_GetCertificateV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2}, []string{"v1", "certificates", "certificate_id"}, "", runtime.AssumeColonVerbOpt(true)))
 
 	pattern_OcpCertificateApi_ListCertificateV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "certificates"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_OcpCertificateApi_UpdateCertificateV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "certificate"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_OcpCertificateApi_UpdateCertificateV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "certificates"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_OcpCertificateApi_RemoveCertificateV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2}, []string{"v1", "certificate", "certificate_id"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_OcpCertificateApi_RemoveCertificateV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2}, []string{"v1", "certificates", "certificate_id"}, "", runtime.AssumeColonVerbOpt(true)))
 )
 
 var (

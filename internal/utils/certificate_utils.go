@@ -11,7 +11,6 @@ import (
 
 // SplitToBulks - splits the certificate slice into certificate slices with the specified batchSize size
 func SplitToBulks(certificate []model.Certificate, batchSize int) [][]model.Certificate {
-
 	if len(certificate) == 0 || batchSize <= 0 {
 		return [][]model.Certificate{}
 	}
@@ -42,10 +41,10 @@ func SliceToMap(certificate []model.Certificate) (map[uint64]model.Certificate, 
 	result := make(map[uint64]model.Certificate, len(certificate))
 
 	for _, value := range certificate {
-		if _, found := result[value.Id]; found {
+		if _, found := result[value.ID]; found {
 			return nil, errors.New("Certificate Id is not unique. Error: duplicate value")
 		}
-		result[value.Id] = value
+		result[value.ID] = value
 	}
 
 	return result, nil
@@ -78,7 +77,7 @@ func ReadFileByCount(filePath string, count int) {
 
 	for i := 0; i < count; i++ {
 		if data, err := readFile(); err == nil {
-			fmt.Printf(string(data))
+			log.Print(string(data))
 		} else {
 			panic(err)
 		}

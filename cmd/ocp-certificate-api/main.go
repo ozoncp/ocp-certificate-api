@@ -2,26 +2,33 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"flag"
 	"fmt"
+	"github.com/Shopify/sarama"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	api "github.com/ozoncp/ocp-certificate-api/internal/api"
+	"github.com/ozoncp/ocp-certificate-api/internal/broker"
 	cfg "github.com/ozoncp/ocp-certificate-api/internal/config"
 	"github.com/ozoncp/ocp-certificate-api/internal/metrics"
-	"github.com/ozoncp/ocp-certificate-api/internal/producer"
 	"github.com/ozoncp/ocp-certificate-api/internal/repo"
 	"github.com/ozoncp/ocp-certificate-api/internal/tracer"
 	desc "github.com/ozoncp/ocp-certificate-api/pkg/ocp-certificate-api"
+	"github.com/pressly/goose/v3"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
+	_ "golang.org/x/tools/godoc/vfs"
 	"google.golang.org/grpc"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
+	"time"
 )
 
 // initDB - init db (postgres)
@@ -47,15 +54,14 @@ func initDB() *sqlx.DB {
 }
 
 // grpcServer - grpc server
-func grpcServer(db *sqlx.DB, prod producer.Producer) (*grpc.Server, net.Listener) {
+func grpcServer(r repo.Repo, m metrics.Metrics, p broker.Producer) (*grpc.Server, net.Listener) {
 	listen, err := net.Listen("tcp", cfg.GetConfigInstance().Grpc.Address)
 	if err != nil {
 		log.Fatal().Msgf("failed to listen: %v", err)
 	}
 
 	gSrv := grpc.NewServer()
-	newRepo := repo.NewRepo(db)
-	desc.RegisterOcpCertificateApiServer(gSrv, api.NewOcpCertificateApi(newRepo, prod))
+	desc.RegisterOcpCertificateApiServer(gSrv, api.NewOcpCertificateAPI(r, m, p))
 
 	log.Info().Msg("gRPC server started")
 	return gSrv, listen
@@ -63,12 +69,29 @@ func grpcServer(db *sqlx.DB, prod producer.Producer) (*grpc.Server, net.Listener
 
 // restServer - rest server for send json
 func restServer(ctx context.Context) (*http.Server, error) {
-	mux := runtime.NewServeMux()
+	isReady := &atomic.Value{}
+	isReady.Store(false)
+	go func() {
+		log.Printf("Ready probe is negative by default...")
+		time.Sleep(10 * time.Second)
+		isReady.Store(true)
+		log.Printf("Ready probe is positive.")
+	}()
+
+	serMux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithInsecure()}
-	err := desc.RegisterOcpCertificateApiHandlerFromEndpoint(ctx, mux, cfg.GetConfigInstance().Grpc.Address, opts)
+	err := desc.RegisterOcpCertificateApiHandlerFromEndpoint(ctx, serMux, cfg.GetConfigInstance().Grpc.Address, opts)
 	if err != nil {
 		return nil, err
 	}
+
+	mux := http.NewServeMux()
+	mux.Handle("/", serMux)
+	mux.Handle("/live", http.HandlerFunc(live))
+	mux.Handle("/health", http.HandlerFunc(health))
+	log.Info().Msg("Liveness started")
+	mux.Handle("/ready", ready(isReady))
+	log.Info().Msg("Readiness started")
 
 	srv := &http.Server{
 		Addr:    cfg.GetConfigInstance().Rest.Address,
@@ -79,10 +102,42 @@ func restServer(ctx context.Context) (*http.Server, error) {
 	return srv, nil
 }
 
+// live is a simple HTTP handler function which writes a response.
+func live(w http.ResponseWriter, _ *http.Request) {
+	body, err := json.Marshal("This is service live!")
+	if err != nil {
+		log.Error().Err(err).Msgf("Could not encode info data: %v", err)
+		http.Error(w, http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, err = w.Write(body)
+	if err != nil {
+		log.Error().Err(err).Msgf("Could not write body: %v", err)
+		return
+	}
+}
+
+// health is a liveness probe.
+func health(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
+// ready is a readiness probe.
+func ready(isReady *atomic.Value) http.HandlerFunc {
+	return func(w http.ResponseWriter, _ *http.Request) {
+		if isReady == nil || !isReady.Load().(bool) {
+			http.Error(w, http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
 // metricsServer - metrics server
-func metricsServer() (*http.Server, error) {
+func metricsServer() *http.Server {
 	mux := http.NewServeMux()
-	mux.Handle(cfg.GetConfigInstance().Prometheus.Uri, promhttp.Handler())
+	mux.Handle(cfg.GetConfigInstance().Prometheus.URI, promhttp.Handler())
 
 	srv := &http.Server{
 		Addr:    cfg.GetConfigInstance().Prometheus.Port,
@@ -90,15 +145,64 @@ func metricsServer() (*http.Server, error) {
 	}
 
 	log.Info().Msg("Metrics server started")
-	return srv, nil
+	return srv
 }
 
-// kafka - message broker
-func kafka() producer.Producer {
-	prod := producer.NewProducer()
+// producer - message broker
+func producer() broker.Producer {
+	config := sarama.NewConfig()
+	config.Producer.RequiredAcks = sarama.WaitForLocal
+	config.Producer.Partitioner = sarama.NewRandomPartitioner
+	config.Producer.Return.Successes = true
 
-	log.Info().Msg("Kafka message broker started and init")
+	syncProducer, err := sarama.NewSyncProducer(cfg.GetConfigInstance().Kafka.Brokers, config)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create Sarama new sync broker")
+	}
+
+	prod := broker.NewProducer(syncProducer)
+
+	log.Info().Msg("producer message broker started and init")
 	return prod
+}
+
+func consumer(r repo.Repo, m metrics.Metrics) (broker.Consumer, error) {
+	cons := broker.NewConsumer(r, m)
+
+	if err := cons.Subscribe("multi", broker.MultiCreate); err != nil {
+		return nil, err
+	}
+
+	log.Info().Msg("consumer message broker started and init")
+	return cons, nil
+}
+
+func migrationsCli(db *sqlx.DB) error {
+	runCommand := flag.String("migrate", "", "specify the command: [up] or [down]")
+	flag.Parse()
+	if *runCommand == "" {
+		return nil
+	}
+
+	rootDir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	switch *runCommand {
+	case "up":
+		if err = goose.Up(db.DB, rootDir+"/migrations"); err != nil {
+			log.Fatal().Err(err).Msg("failed to up migrate")
+		}
+	case "down":
+		if err = goose.Down(db.DB, rootDir+"/migrations"); err != nil {
+			log.Fatal().Err(err).Msg("failed to down migrate")
+		}
+	default:
+		log.Warn().Msgf("available commands [up] or [down], you specified %v", *runCommand)
+	}
+
+	return nil
 }
 
 func main() {
@@ -120,11 +224,23 @@ func main() {
 
 	// Init DB and after work close
 	db := initDB()
+	newRepo := repo.NewRepo(db)
+
+	// cli command for up/down migrate
+	err = migrationsCli(db)
+	if err != nil {
+		log.Fatal().Msgf("failed migrate command: %v", err)
+	}
 
 	// Metrics server
-	mSrv, err := metricsServer()
+	m := metrics.NewMetrics()
+	mSrv := metricsServer()
+
+	// message broker
+	prod := producer()
+	cons, err := consumer(newRepo, m)
 	if err != nil {
-		log.Fatal().Msgf("failed start metrics server: %v", err)
+		log.Err(err).Msg("failed subscribe consumer")
 	}
 
 	// Rest server
@@ -133,11 +249,8 @@ func main() {
 		log.Fatal().Msgf("failed start rest server: %v", err)
 	}
 
-	// kafka message broker
-	prod := kafka()
-
 	// Grpc server
-	gSrv, listen := grpcServer(db, prod)
+	gSrv, listen := grpcServer(newRepo, m, prod)
 
 	// Rest server running
 	grp.Go(func() error {
@@ -151,7 +264,6 @@ func main() {
 
 	// Metrics register and server running
 	grp.Go(func() error {
-		metrics.RegisterMetrics()
 		return mSrv.ListenAndServe()
 	})
 
@@ -168,7 +280,6 @@ func main() {
 	}
 
 	gSrv.GracefulStop()
-
 	log.Info().Msg("servers stopped")
 
 	closer.Close()
@@ -176,6 +287,12 @@ func main() {
 
 	db.Close()
 	log.Info().Msg("db stopped")
+
+	prod.Close()
+	log.Info().Msg("broker producer stopped")
+
+	cons.Close()
+	log.Info().Msg("consumer producer stopped")
 
 	cancel()
 

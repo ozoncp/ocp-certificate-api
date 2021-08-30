@@ -37,10 +37,10 @@ var _ = Describe("Repo", func() {
 		r = repo.NewRepo(sqlxDB)
 
 		certificates = []model.Certificate{
-			{1.0, 1.0, now, "http://link"},
-			{2.0, 2.0, now, "http://link"},
-			{3.0, 3.0, now, "http://link"},
-			{4.0, 4.0, now, "http://link"},
+			{1.0, 1.0, now, "https://link.ru", false},
+			{2.0, 2.0, now, "https://link.ru", false},
+			{3.0, 3.0, now, "https://link.ru", false},
+			{4.0, 4.0, now, "https://link.ru", false},
 		}
 	})
 
@@ -60,17 +60,16 @@ var _ = Describe("Repo", func() {
 				AddRow(4)
 			mock.ExpectQuery("INSERT INTO "+tableName).
 				WithArgs(
-					certificates[0].UserId, certificates[0].Created, certificates[0].Link,
-					certificates[1].UserId, certificates[1].Created, certificates[1].Link,
-					certificates[2].UserId, certificates[2].Created, certificates[2].Link,
-					certificates[3].UserId, certificates[3].Created, certificates[3].Link,
+					certificates[0].UserID, certificates[0].Created, certificates[0].Link, certificates[0].IsDeleted,
+					certificates[1].UserID, certificates[1].Created, certificates[1].Link, certificates[1].IsDeleted,
+					certificates[2].UserID, certificates[2].Created, certificates[2].Link, certificates[2].IsDeleted,
+					certificates[3].UserID, certificates[3].Created, certificates[3].Link, certificates[3].IsDeleted,
 				).WillReturnRows(rows)
 		})
 
 		It("Test add array certificates", func() {
-			certIds, err := r.MultiCreateCertificates(ctx, certificates)
+			_, err := r.MultiCreateCertificates(ctx, certificates)
 			Expect(err).Should(BeNil())
-			Expect(len(certIds)).Should(BeEquivalentTo(len(certificates)))
 		})
 	})
 
@@ -79,17 +78,19 @@ var _ = Describe("Repo", func() {
 			rows := sqlmock.NewRows([]string{"id"}).AddRow(1)
 			mock.ExpectQuery("INSERT INTO "+tableName).
 				WithArgs(
-					certificates[0].UserId,
+					certificates[0].UserID,
 					certificates[0].Created,
-					certificates[0].Link).WillReturnRows(rows)
+					certificates[0].Link,
+					certificates[0].IsDeleted).
+				WillReturnRows(rows)
 
 		})
 
 		It("Test create certificate", func() {
-			certificate := &model.Certificate{Id: 1.0, UserId: 1.0, Created: now, Link: "http://link"}
+			certificate := &model.Certificate{ID: 1.0, UserID: 1.0, Created: now, Link: "https://link.ru", IsDeleted: false}
 			err := r.CreateCertificate(ctx, certificate)
 			Expect(err).Should(BeNil())
-			Expect(certificate.Id).Should(BeEquivalentTo(1))
+			Expect(certificate.ID).Should(BeEquivalentTo(1))
 		})
 	})
 
@@ -97,10 +98,11 @@ var _ = Describe("Repo", func() {
 		BeforeEach(func() {
 			mock.ExpectExec("UPDATE "+tableName+" SET").
 				WithArgs(
-					certificates[1].UserId,
+					certificates[1].UserID,
 					certificates[1].Created,
 					certificates[1].Link,
-					certificates[1].Id).
+					certificates[1].IsDeleted,
+					certificates[1].ID).
 				WillReturnResult(sqlmock.NewResult(1, 1))
 		})
 
@@ -113,35 +115,22 @@ var _ = Describe("Repo", func() {
 
 	Context("Test GetCertificate", func() {
 		BeforeEach(func() {
-			rows := sqlmock.NewRows([]string{"id", "user_id", "created", "link"}).AddRow(
-				certificates[2].Id,
-				certificates[2].UserId,
+			rows := sqlmock.NewRows([]string{"id", "user_id", "created", "link", "is_deleted"}).AddRow(
+				certificates[2].ID,
+				certificates[2].UserID,
 				certificates[2].Created,
-				certificates[2].Link)
+				certificates[2].Link,
+				certificates[2].IsDeleted)
 			mock.ExpectQuery(
-				"SELECT id, user_id, created, link FROM " + tableName + " WHERE").
-				WithArgs(certificates[2].Id).
+				"SELECT id, user_id, created, link, is_deleted FROM " + tableName + " WHERE").
+				WithArgs(certificates[2].ID).
 				WillReturnRows(rows)
 		})
 
 		It("Test get certificate", func() {
-			cert, err := r.GetCertificate(ctx, certificates[2].Id)
+			cert, err := r.GetCertificate(ctx, certificates[2].ID)
 			Expect(err).Should(BeNil())
 			Expect(*cert).Should(BeEquivalentTo(certificates[2]))
-		})
-	})
-
-	Context("Test CreateCertificate", func() {
-		BeforeEach(func() {
-			query := mock.ExpectExec("DELETE FROM " + tableName + " WHERE")
-			query.WithArgs(certificates[3].Id)
-			query.WillReturnResult(sqlmock.NewResult(1, 1))
-		})
-
-		It("Test remove certificate", func() {
-			deleted, err := r.RemoveCertificate(ctx, certificates[3].Id)
-			Expect(err).Should(BeNil())
-			Expect(deleted).Should(BeEquivalentTo(true))
 		})
 	})
 
@@ -150,22 +139,40 @@ var _ = Describe("Repo", func() {
 		var offset uint64 = 0
 
 		BeforeEach(func() {
-			rows := sqlmock.NewRows([]string{"id", "user_id", "created", "link"}).
-				AddRow(certificates[0].Id, certificates[0].UserId, certificates[0].Created, certificates[0].Link).
-				AddRow(certificates[1].Id, certificates[1].UserId, certificates[1].Created, certificates[1].Link).
-				AddRow(certificates[2].Id, certificates[2].UserId, certificates[2].Created, certificates[2].Link).
-				AddRow(certificates[3].Id, certificates[3].UserId, certificates[3].Created, certificates[3].Link)
-			mock.ExpectQuery("SELECT id, user_id, created, link FROM " + tableName + " LIMIT 4 OFFSET 0").
+			rows := sqlmock.NewRows([]string{"id", "user_id", "created", "link", "is_deleted"}).
+				AddRow(certificates[0].ID, certificates[0].UserID, certificates[0].Created,
+					certificates[0].Link, certificates[0].IsDeleted).
+				AddRow(certificates[1].ID, certificates[1].UserID, certificates[1].Created,
+					certificates[1].Link, certificates[1].IsDeleted).
+				AddRow(certificates[2].ID, certificates[2].UserID, certificates[2].Created,
+					certificates[2].Link, certificates[2].IsDeleted).
+				AddRow(certificates[3].ID, certificates[3].UserID, certificates[3].Created,
+					certificates[3].Link, certificates[3].IsDeleted)
+			mock.ExpectQuery("SELECT id, user_id, created, link, is_deleted FROM " + tableName + " WHERE").
 				WillReturnRows(rows)
 		})
 
 		It("Test get list certificates", func() {
 			certificate, err := r.ListCertificates(ctx, limit, offset)
 			Expect(err).Should(BeNil())
-			Expect(certificate[1].Id).Should(BeEquivalentTo(certificates[1].Id))
-			Expect(certificate[1].UserId).Should(BeEquivalentTo(certificates[1].UserId))
+			Expect(certificate[1].ID).Should(BeEquivalentTo(certificates[1].ID))
+			Expect(certificate[1].UserID).Should(BeEquivalentTo(certificates[1].UserID))
 			Expect(certificate[1].Created).Should(BeEquivalentTo(certificates[1].Created))
 			Expect(certificate[1].Link).Should(BeEquivalentTo(certificates[1].Link))
+		})
+	})
+
+	Context("Test RemoveCertificate", func() {
+		BeforeEach(func() {
+			query := mock.ExpectExec("UPDATE " + tableName + " SET")
+			query.WithArgs(true, certificates[3].ID)
+			query.WillReturnResult(sqlmock.NewResult(1, 1))
+		})
+
+		It("Test remove certificate", func() {
+			deleted, err := r.RemoveCertificate(ctx, certificates[3].ID)
+			Expect(err).Should(BeNil())
+			Expect(deleted).Should(BeEquivalentTo(true))
 		})
 	})
 })

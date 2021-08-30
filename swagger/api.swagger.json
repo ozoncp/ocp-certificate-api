@@ -11,7 +11,43 @@
     "application/json"
   ],
   "paths": {
-    "/v1/certificate": {
+    "/v1/certificates": {
+      "get": {
+        "operationId": "OcpCertificateApi_ListCertificateV1",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiListCertificateV1Response"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "uint64"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "uint64"
+          }
+        ],
+        "tags": [
+          "OcpCertificateApi"
+        ]
+      },
       "post": {
         "operationId": "OcpCertificateApi_CreateCertificateV1",
         "responses": {
@@ -73,7 +109,39 @@
         ]
       }
     },
-    "/v1/certificate/{certificate_id}": {
+    "/v1/certificates/list": {
+      "post": {
+        "operationId": "OcpCertificateApi_MultiCreateCertificatesV1",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/apiMultiCreateCertificatesV1Response"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/apiMultiCreateCertificatesV1Request"
+            }
+          }
+        ],
+        "tags": [
+          "OcpCertificateApi"
+        ]
+      }
+    },
+    "/v1/certificates/{certificate_id}": {
       "get": {
         "operationId": "OcpCertificateApi_GetCertificateV1",
         "responses": {
@@ -132,85 +200,13 @@
           "OcpCertificateApi"
         ]
       }
-    },
-    "/v1/certificates": {
-      "get": {
-        "operationId": "OcpCertificateApi_ListCertificateV1",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/apiListCertificateV1Response"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/runtimeError"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "type": "string",
-            "format": "uint64"
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "required": false,
-            "type": "string",
-            "format": "uint64"
-          }
-        ],
-        "tags": [
-          "OcpCertificateApi"
-        ]
-      },
-      "post": {
-        "operationId": "OcpCertificateApi_MultiCreateCertificatesV1",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/apiMultiCreateCertificatesV1Response"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/runtimeError"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/apiMultiCreateCertificatesV1Request"
-            }
-          }
-        ],
-        "tags": [
-          "OcpCertificateApi"
-        ]
-      }
     }
   },
   "definitions": {
-    "apiCertificate": {
+    "apiCreateCertificateV1Request": {
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "format": "uint64"
-        },
-        "userId": {
+        "user_id": {
           "type": "string",
           "format": "uint64"
         },
@@ -220,14 +216,6 @@
         },
         "link": {
           "type": "string"
-        }
-      }
-    },
-    "apiCreateCertificateV1Request": {
-      "type": "object",
-      "properties": {
-        "certificate": {
-          "$ref": "#/definitions/apiCertificate"
         }
       },
       "title": "Create"
@@ -244,8 +232,20 @@
     "apiGetCertificateV1Response": {
       "type": "object",
       "properties": {
-        "certificate": {
-          "$ref": "#/definitions/apiCertificate"
+        "id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "user_id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "created": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "link": {
+          "type": "string"
         }
       }
     },
@@ -255,7 +255,7 @@
         "certificates": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/apiCertificate"
+            "$ref": "#/definitions/apiGetCertificateV1Response"
           }
         }
       }
@@ -266,7 +266,7 @@
         "certificates": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/apiCertificate"
+            "$ref": "#/definitions/apiCreateCertificateV1Request"
           }
         }
       },
@@ -295,8 +295,20 @@
     "apiUpdateCertificateV1Request": {
       "type": "object",
       "properties": {
-        "certificate": {
-          "$ref": "#/definitions/apiCertificate"
+        "id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "user_id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "created": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "link": {
+          "type": "string"
         }
       },
       "title": "Update"

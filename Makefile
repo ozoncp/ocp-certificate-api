@@ -4,7 +4,7 @@ run:
 	go run cmd/ocp-certificate-api/main.go
 
 lint:
-	golint ./...
+	golangci-lint run
 
 test:
 	go test -v ./...
@@ -76,7 +76,7 @@ vendor-proto: .vendor-proto
 .vendor-proto:
 		mkdir -p vendor.protogen
 		mkdir -p vendor.protogen/api/ocp-certificate-api
-		cp api/ocp-certificate-api/ocp-certificate-api.proto vendor.protogen/api/ocp-certificate-api
+		yes | cp -rf api/ocp-certificate-api/* vendor.protogen/api/ocp-certificate-api
 		@if [ ! -d vendor.protogen/google ]; then \
 			git clone https://github.com/googleapis/googleapis vendor.protogen/googleapis &&\
 			mkdir -p  vendor.protogen/google/ &&\
@@ -104,6 +104,8 @@ install-go-deps: .install-go-deps
 		go get -u google.golang.org/grpc
 		go get -u google.golang.org/grpc/cmd/protoc-gen-go-grpc
 		go get -u github.com/envoyproxy/protoc-gen-validate
+		go get -u github.com/yandex/pandora
+		go install github.com/yandex/pandora
 		go install github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
 		go install google.golang.org/grpc/cmd/protoc-gen-go-grpc
 		go install github.com/envoyproxy/protoc-gen-validate

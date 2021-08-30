@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-var mockError = errors.New("error")
+var errNew = errors.New("error")
 
 var _ = Describe("Flusher", func() {
 	now := time.Now()
@@ -29,12 +29,13 @@ var _ = Describe("Flusher", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockRepo = mocks.NewMockRepo(ctrl)
 		ctx = context.Background()
+		link := "https://link.ru"
 
 		certificates = []model.Certificate{
-			{1.0, 1.0, now, "http://link"},
-			{2.0, 2.0, now, "http://link"},
-			{3.0, 3.0, now, "http://link"},
-			{4.0, 4.0, now, "http://link"},
+			{1.0, 1.0, now, link, false},
+			{2.0, 2.0, now, link, false},
+			{3.0, 3.0, now, link, false},
+			{4.0, 4.0, now, link, false},
 		}
 	})
 
@@ -58,7 +59,7 @@ var _ = Describe("Flusher", func() {
 	Context("Error when saving in repository", func() {
 		chunkSize := 2
 		BeforeEach(func() {
-			mockRepo.EXPECT().MultiCreateCertificates(ctx, gomock.Any()).Return(nil, mockError).MinTimes(1)
+			mockRepo.EXPECT().MultiCreateCertificates(ctx, gomock.Any()).Return(nil, errNew).MinTimes(1)
 		})
 
 		It("", func() {
@@ -74,7 +75,7 @@ var _ = Describe("Flusher", func() {
 		BeforeEach(func() {
 			gomock.InOrder(
 				mockRepo.EXPECT().MultiCreateCertificates(ctx, gomock.Any()).Return([]uint64{4}, nil),
-				mockRepo.EXPECT().MultiCreateCertificates(ctx, gomock.Any()).Return(nil, mockError),
+				mockRepo.EXPECT().MultiCreateCertificates(ctx, gomock.Any()).Return(nil, errNew),
 			)
 		})
 

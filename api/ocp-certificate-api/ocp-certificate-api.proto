@@ -49,16 +49,9 @@ service OcpCertificateApi {
   }
 }
 
-message Certificate {
-  uint64 id = 1 [(validate.rules).uint64.gt = 0];
-  uint64 userId = 2 [(validate.rules).uint64.gt = 0];
-  google.protobuf.Timestamp created = 3;
-  string link = 4;
-}
-
 // Multi create
 message MultiCreateCertificatesV1Request {
-  repeated Certificate certificates = 1 [(validate.rules).repeated.min_items = 1];
+  repeated CreateCertificateV1Request certificates = 1 [(validate.rules).repeated.min_items = 1];
 }
 
 message MultiCreateCertificatesV1Response {
@@ -67,7 +60,9 @@ message MultiCreateCertificatesV1Response {
 
 // Create
 message CreateCertificateV1Request {
-  Certificate certificate = 1;
+  uint64 user_id = 1 [(validate.rules).uint64.gt = 0];
+  google.protobuf.Timestamp created = 2;
+  string link = 3;
 }
 
 message CreateCertificateV1Response {
@@ -79,7 +74,10 @@ message GetCertificateV1Request {
   uint64 certificate_id = 1 [(validate.rules).uint64.gt = 0];
 }
 message GetCertificateV1Response {
-  Certificate certificate = 1;
+  uint64 id = 1 [(validate.rules).uint64.gt = 0];
+  uint64 user_id = 2 [(validate.rules).uint64.gt = 0];
+  google.protobuf.Timestamp created = 3;
+  string link = 4;
 }
 
 // Read All
@@ -88,12 +86,15 @@ message ListCertificateV1Request {
   uint64 offset = 2 [(validate.rules).uint64.gt = 0];
 }
 message ListCertificateV1Response {
-  repeated Certificate certificates = 1;
+  repeated GetCertificateV1Response certificates = 1;
 }
 
 // Update
 message UpdateCertificateV1Request {
-  Certificate certificate = 1;
+  uint64 id = 1 [(validate.rules).uint64.gt = 0];
+  uint64 user_id = 2 [(validate.rules).uint64.gt = 0];
+  google.protobuf.Timestamp created = 3;
+  string link = 4;
 }
 message UpdateCertificateV1Response {
   bool updated = 1;

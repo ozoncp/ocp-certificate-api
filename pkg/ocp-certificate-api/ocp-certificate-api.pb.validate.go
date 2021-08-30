@@ -33,97 +33,6 @@ var (
 	_ = anypb.Any{}
 )
 
-// Validate checks the field values on Certificate with the rules defined in
-// the proto definition for this message. If any rules are violated, an error
-// is returned.
-func (m *Certificate) Validate() error {
-	if m == nil {
-		return nil
-	}
-
-	if m.GetId() <= 0 {
-		return CertificateValidationError{
-			field:  "Id",
-			reason: "value must be greater than 0",
-		}
-	}
-
-	if m.GetUserId() <= 0 {
-		return CertificateValidationError{
-			field:  "UserId",
-			reason: "value must be greater than 0",
-		}
-	}
-
-	if v, ok := interface{}(m.GetCreated()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return CertificateValidationError{
-				field:  "Created",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
-	}
-
-	// no validation rules for Link
-
-	return nil
-}
-
-// CertificateValidationError is the validation error returned by
-// Certificate.Validate if the designated constraints aren't met.
-type CertificateValidationError struct {
-	field  string
-	reason string
-	cause  error
-	key    bool
-}
-
-// Field function returns field value.
-func (e CertificateValidationError) Field() string { return e.field }
-
-// Reason function returns reason value.
-func (e CertificateValidationError) Reason() string { return e.reason }
-
-// Cause function returns cause value.
-func (e CertificateValidationError) Cause() error { return e.cause }
-
-// Key function returns key value.
-func (e CertificateValidationError) Key() bool { return e.key }
-
-// ErrorName returns error name.
-func (e CertificateValidationError) ErrorName() string { return "CertificateValidationError" }
-
-// Error satisfies the builtin error interface
-func (e CertificateValidationError) Error() string {
-	cause := ""
-	if e.cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.cause)
-	}
-
-	key := ""
-	if e.key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sCertificate.%s: %s%s",
-		key,
-		e.field,
-		e.reason,
-		cause)
-}
-
-var _ error = CertificateValidationError{}
-
-var _ interface {
-	Field() string
-	Reason() string
-	Key() bool
-	Cause() error
-	ErrorName() string
-} = CertificateValidationError{}
-
 // Validate checks the field values on MultiCreateCertificatesV1Request with
 // the rules defined in the proto definition for this message. If any rules
 // are violated, an error is returned.
@@ -297,15 +206,24 @@ func (m *CreateCertificateV1Request) Validate() error {
 		return nil
 	}
 
-	if v, ok := interface{}(m.GetCertificate()).(interface{ Validate() error }); ok {
+	if m.GetUserId() <= 0 {
+		return CreateCertificateV1RequestValidationError{
+			field:  "UserId",
+			reason: "value must be greater than 0",
+		}
+	}
+
+	if v, ok := interface{}(m.GetCreated()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return CreateCertificateV1RequestValidationError{
-				field:  "Certificate",
+				field:  "Created",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
 		}
 	}
+
+	// no validation rules for Link
 
 	return nil
 }
@@ -518,15 +436,31 @@ func (m *GetCertificateV1Response) Validate() error {
 		return nil
 	}
 
-	if v, ok := interface{}(m.GetCertificate()).(interface{ Validate() error }); ok {
+	if m.GetId() <= 0 {
+		return GetCertificateV1ResponseValidationError{
+			field:  "Id",
+			reason: "value must be greater than 0",
+		}
+	}
+
+	if m.GetUserId() <= 0 {
+		return GetCertificateV1ResponseValidationError{
+			field:  "UserId",
+			reason: "value must be greater than 0",
+		}
+	}
+
+	if v, ok := interface{}(m.GetCreated()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return GetCertificateV1ResponseValidationError{
-				field:  "Certificate",
+				field:  "Created",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
 		}
 	}
+
+	// no validation rules for Link
 
 	return nil
 }
@@ -758,15 +692,31 @@ func (m *UpdateCertificateV1Request) Validate() error {
 		return nil
 	}
 
-	if v, ok := interface{}(m.GetCertificate()).(interface{ Validate() error }); ok {
+	if m.GetId() <= 0 {
+		return UpdateCertificateV1RequestValidationError{
+			field:  "Id",
+			reason: "value must be greater than 0",
+		}
+	}
+
+	if m.GetUserId() <= 0 {
+		return UpdateCertificateV1RequestValidationError{
+			field:  "UserId",
+			reason: "value must be greater than 0",
+		}
+	}
+
+	if v, ok := interface{}(m.GetCreated()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return UpdateCertificateV1RequestValidationError{
-				field:  "Certificate",
+				field:  "Created",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
 		}
 	}
+
+	// no validation rules for Link
 
 	return nil
 }
