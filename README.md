@@ -1,5 +1,8 @@
 # Ozon Code Platform Certificate API
 
+[![build-and-test](https://github.com/ozoncp/ocp-certificate-api/actions/workflows/build-and-test.yml/badge.svg?branch=main)](https://github.com/ozoncp/ocp-certificate-api/actions/workflows/build-and-test.yml)
+[![codecov](https://codecov.io/gh/ozoncp/ocp-certificate-api/branch/main/graph/badge.svg?token=2649a463-f405-4622-8624-c91aa3dd7d5f)](https://codecov.io/gh/ozoncp/ocp-certificate-api)
+
 OCP Certificate Api - service for work and management of the certificate platform.
 
 ### The service supports management methods:

@@ -6,7 +6,6 @@ import (
 
 // SplitToBulks - splits the certificate slice into certificate slices with the specified batchSize size
 func SplitToBulks(certificate []model.Certificate, batchSize int) [][]model.Certificate {
-
 	if len(certificate) == 0 || batchSize <= 0 {
 		return [][]model.Certificate{}
 	}

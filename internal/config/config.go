@@ -48,7 +48,7 @@ type Project struct {
 
 // Prometheus - contains all parameters metrics information
 type Prometheus struct {
-	Uri  string `yaml:"uri"`
+	URI  string `yaml:"uri"`
 	Port string `yaml:"port"`
 }
 
@@ -64,7 +64,7 @@ type Kafka struct {
 	Brokers []string `yaml:"brokers"`
 }
 
-// Config - contains all configuration parameters
+// Config - contains all configuration parameters in config package
 type Config struct {
 	Project    Project    `yaml:"project"`
 	Grpc       Grpc       `yaml:"grpc"`
@@ -122,7 +122,7 @@ func NewEnv() *Config {
 		},
 		BatchSize: getEnvAsInt("BATCH_SIZE", GetConfigInstance().BatchSize),
 		Prometheus: Prometheus{
-			Uri:  getEnv("PROMETHEUS_URI", GetConfigInstance().Prometheus.Uri),
+			URI:  getEnv("PROMETHEUS_URI", GetConfigInstance().Prometheus.URI),
 			Port: getEnv("PROMETHEUS_PORT", GetConfigInstance().Prometheus.Port),
 		},
 		Jaeger: Jaeger{
@@ -150,16 +150,6 @@ func getEnvAsInt(name string, defaultVal int) int {
 	valueStr := getEnv(name, "")
 	if value, err := strconv.Atoi(valueStr); err == nil {
 		return value
-	}
-
-	return defaultVal
-}
-
-// Helper to read an environment variable into a bool or return default value
-func getEnvAsBool(name string, defaultVal bool) bool {
-	valStr := getEnv(name, "")
-	if val, err := strconv.ParseBool(valStr); err == nil {
-		return val
 	}
 
 	return defaultVal

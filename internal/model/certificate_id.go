@@ -1,8 +1,8 @@
 package model
 
-// CertificateId - is an interface that describes information about certificate id
-type CertificateId struct {
+// CertificateID - is an interface that describes information about certificate id
+type CertificateID struct {
 	Action    string
-	Id        uint64
+	ID        uint64
 	Timestamp int64
 }

@@ -9,12 +9,13 @@ import (
 
 func TestSplitToBulksSuccess(t *testing.T) {
 	now := time.Now()
+	link := "https://link.ru"
 	slice := []model.Certificate{
-		{1.0, 1.0, now, "https://link.ru", false},
-		{2.0, 2.0, now, "https://link.ru", false},
-		{3.0, 3.0, now, "https://link.ru", false},
-		{4.0, 4.0, now, "https://link.ru", false},
-		{5.0, 5.0, now, "https://link.ru", false},
+		{1.0, 1.0, now, link, false},
+		{2.0, 2.0, now, link, false},
+		{3.0, 3.0, now, link, false},
+		{4.0, 4.0, now, link, false},
+		{5.0, 5.0, now, link, false},
 	}
 
 	want := [][]model.Certificate{

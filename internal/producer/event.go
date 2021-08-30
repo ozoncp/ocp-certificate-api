@@ -14,7 +14,7 @@ const (
 // Message - struct to build messages
 type Message struct {
 	Type ActionType
-	Body model.CertificateId
+	Body model.CertificateID
 }
 
 // Messages - struct to build messages
@@ -24,10 +24,10 @@ type Messages struct {
 }
 
 // CreateMessage - build messages and send to kafka
-func CreateMessage(actionType ActionType, certificateId model.CertificateId) Message {
+func CreateMessage(actionType ActionType, certificateID model.CertificateID) Message {
 	return Message{
 		Type: actionType,
-		Body: certificateId,
+		Body: certificateID,
 	}
 }
 

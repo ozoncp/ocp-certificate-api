@@ -51,14 +51,14 @@ func initDB() *sqlx.DB {
 }
 
 // grpcServer - grpc server
-func grpcServer(r repo.Repo, m metrics.Metrics, prod producer.Producer, cons producer.Consumer) (*grpc.Server, net.Listener) {
+func grpcServer(r repo.Repo, m metrics.Metrics, p producer.Producer, c producer.Consumer) (*grpc.Server, net.Listener) {
 	listen, err := net.Listen("tcp", cfg.GetConfigInstance().Grpc.Address)
 	if err != nil {
 		log.Fatal().Msgf("failed to listen: %v", err)
 	}
 
 	gSrv := grpc.NewServer()
-	desc.RegisterOcpCertificateApiServer(gSrv, api.NewOcpCertificateApi(r, m, prod, cons))
+	desc.RegisterOcpCertificateApiServer(gSrv, api.NewOcpCertificateAPI(r, m, p, c))
 
 	log.Info().Msg("gRPC server started")
 	return gSrv, listen
@@ -108,7 +108,11 @@ func live(w http.ResponseWriter, _ *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(body)
+	_, err = w.Write(body)
+	if err != nil {
+		log.Error().Err(err).Msgf("Could not write body: %v", err)
+		return
+	}
 }
 
 // health is a liveness probe.
@@ -128,9 +132,9 @@ func ready(isReady *atomic.Value) http.HandlerFunc {
 }
 
 // metricsServer - metrics server
-func metricsServer() (*http.Server, error) {
+func metricsServer() *http.Server {
 	mux := http.NewServeMux()
-	mux.Handle(cfg.GetConfigInstance().Prometheus.Uri, promhttp.Handler())
+	mux.Handle(cfg.GetConfigInstance().Prometheus.URI, promhttp.Handler())
 
 	srv := &http.Server{
 		Addr:    cfg.GetConfigInstance().Prometheus.Port,
@@ -138,11 +142,11 @@ func metricsServer() (*http.Server, error) {
 	}
 
 	log.Info().Msg("Metrics server started")
-	return srv, nil
+	return srv
 }
 
 // kafka - message broker
-func kafka(r repo.Repo, m metrics.Metrics) (producer.Producer, producer.Consumer, error) {
+func kafka(r repo.Repo, m metrics.Metrics) (producer.Producer, producer.Consumer) {
 	config := sarama.NewConfig()
 	config.Producer.RequiredAcks = sarama.WaitForLocal
 	config.Producer.Partitioner = sarama.NewRandomPartitioner
@@ -157,7 +161,7 @@ func kafka(r repo.Repo, m metrics.Metrics) (producer.Producer, producer.Consumer
 	cons := producer.NewConsumer(r, m)
 
 	log.Info().Msg("Kafka message broker started and init")
-	return prod, cons, nil
+	return prod, cons
 }
 
 func main() {
@@ -183,16 +187,10 @@ func main() {
 
 	// Metrics server
 	m := metrics.NewMetrics()
-	mSrv, err := metricsServer()
-	if err != nil {
-		log.Fatal().Msgf("failed start metrics server: %v", err)
-	}
+	mSrv := metricsServer()
 
 	// kafka message broker
-	prod, cons, err := kafka(newRepo, m)
-	if err != nil {
-		log.Fatal().Msgf("failed handle kafka consumer: %v", err)
-	}
+	prod, cons := kafka(newRepo, m)
 
 	// Rest server
 	rSrv, err := restServer(ctx)

@@ -39,8 +39,6 @@ var _ = Describe("Api", func() {
 
 		p producer.Producer
 		s producer.Consumer
-
-		err error
 	)
 
 	BeforeEach(func() {
@@ -58,17 +56,19 @@ var _ = Describe("Api", func() {
 
 		p = producer.NewProducer(synProdMock)
 		s = producer.NewConsumer(r, m)
-		grpc = api.NewOcpCertificateApi(r, m, p, s)
+		grpc = api.NewOcpCertificateAPI(r, m, p, s)
+		link := "https://link.ru"
 
 		certificates = []model.Certificate{
-			{1.0, 1.0, now, "https://link.ru", false},
-			{2.0, 2.0, now, "https://link.ru", false},
-			{3.0, 3.0, now, "https://link.ru", false},
-			{4.0, 4.0, now, "https://link.ru", false},
+			{1.0, 1.0, now, link, false},
+			{2.0, 2.0, now, link, false},
+			{3.0, 3.0, now, link, false},
+			{4.0, 4.0, now, link, false},
 		}
 	})
 
 	AfterEach(func() {
+		var err error
 		mock.ExpectClose()
 		err = db.Close()
 		Expect(err).Should(BeNil())
@@ -76,6 +76,7 @@ var _ = Describe("Api", func() {
 
 	Context("Test MultiCreateCertificatesV1", func() {
 		var req *desc.MultiCreateCertificatesV1Request
+		var err error
 
 		BeforeEach(func() {
 			synProdMock.ExpectSendMessageAndSucceed()
@@ -83,7 +84,7 @@ var _ = Describe("Api", func() {
 			multiCertificates := make([]*desc.NewCertificate, 0, len(certificates))
 			for _, certificate := range certificates {
 				multiCertificates = append(multiCertificates, &desc.NewCertificate{
-					UserId:    certificate.UserId,
+					UserId:    certificate.UserID,
 					Created:   timestamppb.New(certificate.Created),
 					Link:      certificate.Link,
 					IsDeleted: certificate.IsDeleted,
@@ -96,9 +97,9 @@ var _ = Describe("Api", func() {
 		})
 
 		It("Test create certificate", func() {
-			grpc = api.NewOcpCertificateApi(r, m, p, s)
+			grpc = api.NewOcpCertificateAPI(r, m, p, s)
 			Expect(grpc).ShouldNot(BeNil())
-			_, err := grpc.MultiCreateCertificatesV1(ctx, req)
+			_, err = grpc.MultiCreateCertificatesV1(ctx, req)
 			Expect(err).Should(BeNil())
 		})
 	})
@@ -111,7 +112,7 @@ var _ = Describe("Api", func() {
 			m.EXPECT().CreateCounterInc()
 			req = &desc.CreateCertificateV1Request{
 				Certificate: &desc.NewCertificate{
-					UserId:    certificates[0].UserId,
+					UserId:    certificates[0].UserID,
 					Created:   timestamppb.New(certificates[0].Created),
 					Link:      certificates[0].Link,
 					IsDeleted: certificates[0].IsDeleted,
@@ -127,7 +128,7 @@ var _ = Describe("Api", func() {
 		})
 
 		It("Test create certificate", func() {
-			grpc = api.NewOcpCertificateApi(r, m, p, s)
+			grpc = api.NewOcpCertificateAPI(r, m, p, s)
 			Expect(grpc).ShouldNot(BeNil())
 			response, err := grpc.CreateCertificateV1(ctx, req)
 			Expect(err).Should(BeNil())
@@ -137,16 +138,17 @@ var _ = Describe("Api", func() {
 
 	Context("Test GetCertificateV1", func() {
 		var req *desc.GetCertificateV1Request
+		var err error
 
 		BeforeEach(func() {
 			req = &desc.GetCertificateV1Request{
-				CertificateId: certificates[1].Id,
+				CertificateId: certificates[1].ID,
 			}
 
 			rows := sqlmock.NewRows([]string{"id", "user_id", "created", "link", "is_deleted"}).
 				AddRow(
-					certificates[1].Id,
-					certificates[1].UserId,
+					certificates[1].ID,
+					certificates[1].UserID,
 					certificates[1].Created,
 					certificates[1].Link,
 					certificates[1].IsDeleted)
@@ -157,14 +159,14 @@ var _ = Describe("Api", func() {
 		})
 
 		It("Test Get certificate", func() {
-			grpc = api.NewOcpCertificateApi(r, m, p, s)
+			grpc = api.NewOcpCertificateAPI(r, m, p, s)
 			Expect(grpc).ShouldNot(BeNil())
 			Expect(err).Should(BeNil())
 
 			response, err := grpc.GetCertificateV1(ctx, req)
 			Expect(err).Should(BeNil())
-			Expect(response.Certificate.Id).Should(BeEquivalentTo(certificates[1].Id))
-			Expect(response.Certificate.UserId).Should(BeEquivalentTo(certificates[1].UserId))
+			Expect(response.Certificate.Id).Should(BeEquivalentTo(certificates[1].ID))
+			Expect(response.Certificate.UserId).Should(BeEquivalentTo(certificates[1].UserID))
 			Expect(response.Certificate.Created.AsTime().Unix()).Should(BeEquivalentTo(certificates[1].Created.Unix()))
 			Expect(response.Certificate.Link).Should(BeEquivalentTo(certificates[1].Link))
 		})
@@ -172,14 +174,15 @@ var _ = Describe("Api", func() {
 
 	Context("Test UpdateCertificateV1Request", func() {
 		var req *desc.UpdateCertificateV1Request
+		var err error
 
 		BeforeEach(func() {
 			synProdMock.ExpectSendMessageAndSucceed()
 			m.EXPECT().UpdateCounterInc()
 			req = &desc.UpdateCertificateV1Request{
 				Certificate: &desc.Certificate{
-					Id:      certificates[3].Id,
-					UserId:  certificates[3].UserId,
+					Id:      certificates[3].ID,
+					UserId:  certificates[3].UserID,
 					Created: timestamppb.New(certificates[3].Created),
 					Link:    certificates[3].Link,
 				},
@@ -198,7 +201,7 @@ var _ = Describe("Api", func() {
 		})
 
 		It("Test update certificate", func() {
-			grpc = api.NewOcpCertificateApi(r, m, p, s)
+			grpc = api.NewOcpCertificateAPI(r, m, p, s)
 			Expect(grpc).ShouldNot(BeNil())
 			Expect(err).Should(BeNil())
 
@@ -210,6 +213,7 @@ var _ = Describe("Api", func() {
 
 	Context("Test ListCertificateV1Request", func() {
 		var req *desc.ListCertificateV1Request
+		var err error
 
 		BeforeEach(func() {
 			req = &desc.ListCertificateV1Request{
@@ -218,10 +222,14 @@ var _ = Describe("Api", func() {
 			}
 
 			rows := sqlmock.NewRows([]string{"id", "user_id", "created", "link", "is_deleted"}).
-				AddRow(certificates[0].Id, certificates[0].UserId, certificates[0].Created, certificates[0].Link, certificates[0].IsDeleted).
-				AddRow(certificates[1].Id, certificates[1].UserId, certificates[1].Created, certificates[1].Link, certificates[1].IsDeleted).
-				AddRow(certificates[2].Id, certificates[2].UserId, certificates[2].Created, certificates[2].Link, certificates[2].IsDeleted).
-				AddRow(certificates[3].Id, certificates[3].UserId, certificates[3].Created, certificates[3].Link, certificates[3].IsDeleted)
+				AddRow(certificates[0].ID, certificates[0].UserID, certificates[0].Created,
+					certificates[0].Link, certificates[0].IsDeleted).
+				AddRow(certificates[1].ID, certificates[1].UserID, certificates[1].Created,
+					certificates[1].Link, certificates[1].IsDeleted).
+				AddRow(certificates[2].ID, certificates[2].UserID, certificates[2].Created,
+					certificates[2].Link, certificates[2].IsDeleted).
+				AddRow(certificates[3].ID, certificates[3].UserID, certificates[3].Created,
+					certificates[3].Link, certificates[3].IsDeleted)
 			mock.ExpectQuery(
 				"SELECT id, user_id, created, link, is_deleted FROM " + tableName + " WHERE").
 				WillReturnRows(rows)
@@ -229,16 +237,16 @@ var _ = Describe("Api", func() {
 		})
 
 		It("Test get list certificates", func() {
-			grpc = api.NewOcpCertificateApi(r, m, p, s)
+			grpc = api.NewOcpCertificateAPI(r, m, p, s)
 			Expect(grpc).ShouldNot(BeNil())
 			Expect(err).Should(BeNil())
 
 			response, err := grpc.ListCertificateV1(ctx, req)
 			Expect(err).Should(BeNil())
-			Expect(response.Certificates[0].Id).Should(BeEquivalentTo(certificates[0].Id))
-			Expect(response.Certificates[1].Id).Should(BeEquivalentTo(certificates[1].Id))
-			Expect(response.Certificates[2].Id).Should(BeEquivalentTo(certificates[2].Id))
-			Expect(response.Certificates[3].Id).Should(BeEquivalentTo(certificates[3].Id))
+			Expect(response.Certificates[0].Id).Should(BeEquivalentTo(certificates[0].ID))
+			Expect(response.Certificates[1].Id).Should(BeEquivalentTo(certificates[1].ID))
+			Expect(response.Certificates[2].Id).Should(BeEquivalentTo(certificates[2].ID))
+			Expect(response.Certificates[3].Id).Should(BeEquivalentTo(certificates[3].ID))
 			Expect(response.Certificates[0].Link).Should(BeEquivalentTo(certificates[0].Link))
 			Expect(response.Certificates[1].Link).Should(BeEquivalentTo(certificates[1].Link))
 			Expect(response.Certificates[2].Link).Should(BeEquivalentTo(certificates[2].Link))

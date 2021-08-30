@@ -43,7 +43,7 @@ func (m *NewCertificate) Validate() error {
 
 	if m.GetUserId() <= 0 {
 		return NewCertificateValidationError{
-			field:  "UserId",
+			field:  "UserID",
 			reason: "value must be greater than 0",
 		}
 	}
@@ -134,14 +134,14 @@ func (m *Certificate) Validate() error {
 
 	if m.GetId() <= 0 {
 		return CertificateValidationError{
-			field:  "Id",
+			field:  "ID",
 			reason: "value must be greater than 0",
 		}
 	}
 
 	if m.GetUserId() <= 0 {
 		return CertificateValidationError{
-			field:  "UserId",
+			field:  "UserID",
 			reason: "value must be greater than 0",
 		}
 	}

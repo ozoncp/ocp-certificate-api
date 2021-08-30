@@ -27,8 +27,9 @@ type api struct {
 	cons producer.Consumer
 }
 
-// NewOcpCertificateApi constructor
-func NewOcpCertificateApi(repo repo.Repo, metr metrics.Metrics, prod producer.Producer, cons producer.Consumer) desc.OcpCertificateApiServer {
+// NewOcpCertificateAPI constructor
+func NewOcpCertificateAPI(repo repo.Repo, metr metrics.Metrics, prod producer.Producer,
+	cons producer.Consumer) desc.OcpCertificateApiServer {
 	return &api{
 		repo: repo,
 		metr: metr,
@@ -54,7 +55,7 @@ func (a *api) MultiCreateCertificatesV1(
 	var certificates []model.Certificate
 	for _, certificate := range req.Certificates {
 		certificates = append(certificates, model.Certificate{
-			UserId:    certificate.UserId,
+			UserID:    certificate.UserId,
 			Created:   certificate.Created.AsTime(),
 			Link:      certificate.Link,
 			IsDeleted: certificate.IsDeleted,
@@ -102,7 +103,7 @@ func (a *api) CreateCertificateV1(
 	defer span.Finish()
 
 	certificate := &model.Certificate{
-		UserId:    req.Certificate.UserId,
+		UserID:    req.Certificate.UserId,
 		Created:   req.Certificate.Created.AsTime(),
 		Link:      req.Certificate.Link,
 		IsDeleted: req.Certificate.IsDeleted,
@@ -115,12 +116,12 @@ func (a *api) CreateCertificateV1(
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	span.SetTag("id", certificate.Id)
+	span.SetTag("id", certificate.ID)
 	a.metr.CreateCounterInc()
 	err = a.prod.Send(cfg.GetConfigInstance().Kafka.Topic,
 		producer.CreateMessage(producer.Create,
-			model.CertificateId{
-				Id:        certificate.Id,
+			model.CertificateID{
+				ID:        certificate.ID,
 				Action:    producer.Create.String(),
 				Timestamp: time.Now().Unix(),
 			}))
@@ -128,7 +129,7 @@ func (a *api) CreateCertificateV1(
 		log.Error().Msgf("failed send message kafka: %v", err)
 	}
 	response := &desc.CreateCertificateV1Response{
-		CertificateId: certificate.Id,
+		CertificateId: certificate.ID,
 	}
 
 	log.Info().Msg("creation of the certificate was successful")
@@ -156,11 +157,11 @@ func (a *api) GetCertificateV1(
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	span.SetTag("id", certificate.Id)
+	span.SetTag("id", certificate.ID)
 	response := &desc.GetCertificateV1Response{
 		Certificate: &desc.Certificate{
-			Id:        certificate.Id,
-			UserId:    certificate.UserId,
+			Id:        certificate.ID,
+			UserId:    certificate.UserID,
 			Created:   timestamppb.New(certificate.Created),
 			Link:      certificate.Link,
 			IsDeleted: certificate.IsDeleted,
@@ -192,8 +193,8 @@ func (a *api) ListCertificateV1(
 	certificates := make([]*desc.Certificate, 0, len(listCertificates))
 	for _, certificate := range listCertificates {
 		cert := &desc.Certificate{
-			Id:        certificate.Id,
-			UserId:    certificate.UserId,
+			Id:        certificate.ID,
+			UserId:    certificate.UserID,
 			Created:   timestamppb.New(certificate.Created),
 			Link:      certificate.Link,
 			IsDeleted: certificate.IsDeleted,
@@ -232,8 +233,8 @@ func (a *api) UpdateCertificateV1(
 	defer span.Finish()
 
 	certificate := model.Certificate{
-		Id:        req.Certificate.Id,
-		UserId:    req.Certificate.UserId,
+		ID:        req.Certificate.Id,
+		UserID:    req.Certificate.UserId,
 		Created:   req.Certificate.Created.AsTime(),
 		Link:      req.Certificate.Link,
 		IsDeleted: req.Certificate.IsDeleted,
@@ -246,12 +247,12 @@ func (a *api) UpdateCertificateV1(
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	span.SetTag("id", certificate.Id)
+	span.SetTag("id", certificate.ID)
 	a.metr.UpdateCounterInc()
 	err = a.prod.Send(cfg.GetConfigInstance().Kafka.Topic,
 		producer.CreateMessage(producer.Update,
-			model.CertificateId{
-				Id:        certificate.Id,
+			model.CertificateID{
+				ID:        certificate.ID,
 				Action:    producer.Update.String(),
 				Timestamp: time.Now().Unix(),
 			}))

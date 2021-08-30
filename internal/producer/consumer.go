@@ -79,8 +79,8 @@ func (c *consumer) handleMessage(message *sarama.ConsumerMessage, actionType Act
 		return
 	}
 
-	switch actionType {
-	case MultiCreate:
+	//
+	if actionType.String() == ActionType(3).String() {
 		span := tcr.StartSpan("MultiCreateCertificatesV1")
 		defer span.Finish()
 
