@@ -159,10 +159,10 @@ var _ = Describe("Api", func() {
 
 			response, err := grpc.GetCertificateV1(ctx, req)
 			Expect(err).Should(BeNil())
-			Expect(response.Certificate.Id).Should(BeEquivalentTo(certificates[1].ID))
-			Expect(response.Certificate.UserId).Should(BeEquivalentTo(certificates[1].UserID))
-			Expect(response.Certificate.Created.AsTime().Unix()).Should(BeEquivalentTo(certificates[1].Created.Unix()))
-			Expect(response.Certificate.Link).Should(BeEquivalentTo(certificates[1].Link))
+			Expect(response.Id).Should(BeEquivalentTo(certificates[1].ID))
+			Expect(response.UserId).Should(BeEquivalentTo(certificates[1].UserID))
+			Expect(response.Created.AsTime().Unix()).Should(BeEquivalentTo(certificates[1].Created.Unix()))
+			Expect(response.Link).Should(BeEquivalentTo(certificates[1].Link))
 		})
 	})
 
@@ -257,7 +257,7 @@ var _ = Describe("Api", func() {
 				CertificateId: certificates[1].ID,
 			}
 
-			mock.ExpectExec("DELETE FROM " + tableName).
+			mock.ExpectExec("UPDATE " + tableName + " SET").
 				WillReturnResult(sqlmock.NewResult(1, 1))
 
 		})

@@ -164,8 +164,8 @@ var _ = Describe("Repo", func() {
 
 	Context("Test RemoveCertificate", func() {
 		BeforeEach(func() {
-			query := mock.ExpectExec("DELETE FROM " + tableName + " WHERE")
-			query.WithArgs(certificates[3].ID)
+			query := mock.ExpectExec("UPDATE " + tableName + " SET")
+			query.WithArgs(true, certificates[3].ID)
 			query.WillReturnResult(sqlmock.NewResult(1, 1))
 		})
 

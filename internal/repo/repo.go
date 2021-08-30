@@ -173,7 +173,8 @@ func (r *repo) GetCertificate(ctx context.Context, certificateID uint64) (*model
 
 // RemoveCertificate - remove single certificate in database
 func (r *repo) RemoveCertificate(ctx context.Context, certificateID uint64) (bool, error) {
-	query := squirrel.Delete(tableName).
+	query := squirrel.Update(tableName).
+		Set("is_deleted", true).
 		Where(squirrel.Eq{"id": certificateID}).
 		RunWith(r.db).
 		PlaceholderFormat(squirrel.Dollar)

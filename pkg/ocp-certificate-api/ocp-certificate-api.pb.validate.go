@@ -436,15 +436,31 @@ func (m *GetCertificateV1Response) Validate() error {
 		return nil
 	}
 
-	if v, ok := interface{}(m.GetCertificate()).(interface{ Validate() error }); ok {
+	if m.GetId() <= 0 {
+		return GetCertificateV1ResponseValidationError{
+			field:  "Id",
+			reason: "value must be greater than 0",
+		}
+	}
+
+	if m.GetUserId() <= 0 {
+		return GetCertificateV1ResponseValidationError{
+			field:  "UserId",
+			reason: "value must be greater than 0",
+		}
+	}
+
+	if v, ok := interface{}(m.GetCreated()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return GetCertificateV1ResponseValidationError{
-				field:  "Certificate",
+				field:  "Created",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
 		}
 	}
+
+	// no validation rules for Link
 
 	return nil
 }

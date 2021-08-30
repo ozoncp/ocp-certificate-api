@@ -150,12 +150,10 @@ func (a *api) GetCertificateV1(
 
 	span.SetTag("id", certificate.ID)
 	response := &desc.GetCertificateV1Response{
-		Certificate: &desc.UpdateCertificateV1Request{
-			Id:      certificate.ID,
-			UserId:  certificate.UserID,
-			Created: timestamppb.New(certificate.Created),
-			Link:    certificate.Link,
-		},
+		Id:      certificate.ID,
+		UserId:  certificate.UserID,
+		Created: timestamppb.New(certificate.Created),
+		Link:    certificate.Link,
 	}
 
 	log.Info().Msg("reading of the certificate was successful")
@@ -180,9 +178,9 @@ func (a *api) ListCertificateV1(
 
 	log.Info().Msgf("found count certificates: %d", len(listCertificates))
 
-	certificates := make([]*desc.UpdateCertificateV1Request, 0, len(listCertificates))
+	certificates := make([]*desc.GetCertificateV1Response, 0, len(listCertificates))
 	for _, certificate := range listCertificates {
-		cert := &desc.UpdateCertificateV1Request{
+		cert := &desc.GetCertificateV1Response{
 			Id:      certificate.ID,
 			UserId:  certificate.UserID,
 			Created: timestamppb.New(certificate.Created),

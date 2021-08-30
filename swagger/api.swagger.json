@@ -232,8 +232,20 @@
     "apiGetCertificateV1Response": {
       "type": "object",
       "properties": {
-        "certificate": {
-          "$ref": "#/definitions/apiUpdateCertificateV1Request"
+        "id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "user_id": {
+          "type": "string",
+          "format": "uint64"
+        },
+        "created": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "link": {
+          "type": "string"
         }
       }
     },
@@ -243,7 +255,7 @@
         "certificates": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/apiUpdateCertificateV1Request"
+            "$ref": "#/definitions/apiGetCertificateV1Response"
           }
         }
       }
