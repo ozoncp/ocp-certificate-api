@@ -35,6 +35,11 @@ OCP Certificate Api - service for work and management of the certificate platfor
 ```sh 
     make migrate
 ```
+- or run in container cli interface
+```sh 
+    ./ocp-certificate-api -migrate up
+    ./ocp-certificate-api -migrate down
+```
 ### OR
 #### All steps [Build+Deploy+Run+Migrate]
 ```sh 

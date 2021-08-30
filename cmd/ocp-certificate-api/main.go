@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"github.com/Shopify/sarama"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -15,9 +16,11 @@ import (
 	"github.com/ozoncp/ocp-certificate-api/internal/repo"
 	"github.com/ozoncp/ocp-certificate-api/internal/tracer"
 	desc "github.com/ozoncp/ocp-certificate-api/pkg/ocp-certificate-api"
+	"github.com/pressly/goose/v3"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
+	_ "golang.org/x/tools/godoc/vfs"
 	"google.golang.org/grpc"
 	"net"
 	"net/http"
@@ -164,6 +167,34 @@ func kafka(r repo.Repo, m metrics.Metrics) (producer.Producer, producer.Consumer
 	return prod, cons
 }
 
+func migrationsCli(db *sqlx.DB) error {
+	runCommand := flag.String("migrate", "", "specify the command: [up] or [down]")
+	flag.Parse()
+	if *runCommand == "" {
+		return nil
+	}
+
+	rootDir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	switch *runCommand {
+	case "up":
+		if err = goose.Up(db.DB, rootDir+"/migrations"); err != nil {
+			log.Fatal().Err(err).Msg("failed to up migrate")
+		}
+	case "down":
+		if err = goose.Down(db.DB, rootDir+"/migrations"); err != nil {
+			log.Fatal().Err(err).Msg("failed to down migrate")
+		}
+	default:
+		log.Warn().Msgf("available commands [up] or [down], you specified %v", *runCommand)
+	}
+
+	return nil
+}
+
 func main() {
 	// Read config
 	err := cfg.ReadConfigYML()
@@ -184,6 +215,12 @@ func main() {
 	// Init DB and after work close
 	db := initDB()
 	newRepo := repo.NewRepo(db)
+
+	// cli command for up/down migrate
+	err = migrationsCli(db)
+	if err != nil {
+		log.Fatal().Msgf("failed migrate command: %v", err)
+	}
 
 	// Metrics server
 	m := metrics.NewMetrics()

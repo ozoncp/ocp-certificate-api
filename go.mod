@@ -34,6 +34,7 @@ require (
 	github.com/ozoncp/ocp-certificate-api/pkg/ocp-certificate-api v0.0.0-00010101000000-000000000000
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/pquerna/ffjson v0.0.0-20190930134022-aa0246cd15f7 // indirect
+	github.com/pressly/goose/v3 v3.0.0 // indirect
 	github.com/prometheus/client_golang v1.11.0
 	github.com/prometheus/common v0.30.0 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
